@@ -1,0 +1,12 @@
+@import url(./pygments-css/monokai.css);
+
+pre {
+  background-color: #000;
+  padding: 15px
+}
+
+body {
+  font: 16px Helvetica, arial, freesans, clean, sans-serif;
+  line-height: 1.5;
+  margin: 0 10px;
+}
