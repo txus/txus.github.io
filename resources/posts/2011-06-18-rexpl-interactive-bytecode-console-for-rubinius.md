@@ -136,4 +136,4 @@ I love them :)
 [repo]: http://github.com/txus/rexpl
 [vm_instructions]: http://rubini.us/doc/en/virtual-machine/instructions/
 
-[screenshot]: /images/rexpl.png
+[screenshot]: https://camo.githubusercontent.com/b963d444a8ff8a05220d47416506c1a2d059b83a/687474703a2f2f646c2e64726f70626f782e636f6d2f752f323537313539342f726578706c2e706e67

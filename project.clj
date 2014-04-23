@@ -12,9 +12,10 @@
                  [clygments "0.1.1"]
                  [optimus "0.14.2"]
                  [clj-yaml "0.4.0"]
-                 [clj-time "0.7.0"]]
+                 [clj-time "0.7.0"]
+                 [midje "1.6.0"]]
   :ring {:handler blog.core/app}
+  :plugis [[lein-midje "3.1.3"]]
   :aliases {"build-site" ["run" "-m" "blog.core/export"]}
-  :profiles {:dev {:plugins [[lein-ring "0.8.10"]]}
-             :test {:dependencies [[midje "1.6.0"]]
-                    :plugins [[lein-midje "3.1.3"]]}})
+  :profiles {:dev {:plugins [[lein-ring "0.8.10"]]}})
+

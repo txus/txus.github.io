@@ -14,9 +14,11 @@
 (defn- highlight [node]
   (let [code (->> node :content (apply str))
         lang (->> node :attrs :class keyword)]
-    (assoc node :content (-> code
-                             (pygments/highlight lang :html)
-                             extract-code))))
+    (if lang
+      (assoc node :content (-> code
+                               (pygments/highlight lang :html)
+                               extract-code))
+      node)))
 
 (defn highlight-code-blocks [page]
   (enlive/sniptest page

@@ -39,8 +39,8 @@
   (let [human-date (->> post :date format-date)
         rendered (md/to-html (post :body) pegdown-options)
         body (->> rendered
-                  (str "<header>" (post :title) "</header>")
-                  (str "<span class=\"time\">" human-date "</span>\n\n"))
+                  (str "<header><a href=\"" (post :url) "\">" (post :title) "</a></header>")
+                  (str "<span class=\"date\">" human-date "</span>\n\n"))
         wrapped-body (str "<div class=\"post\">" body "</div>")]
     (fn [req] (layout req wrapped-body))))
 

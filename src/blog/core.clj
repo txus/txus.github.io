@@ -24,14 +24,14 @@
 
     [:body
      [:div.container
-       [:h1 "the programmer language,"]
+       [:h1 [:a {:href "/"} "the programmer language,"]]
        [:div.body page]]]))
 
 (defn markdown-posts [pages]
   (->> pages
       (map (fn [[k v]] (post/from-markdown k v)))
       (reduce (fn [acc post]
-                (println (post :url))
+                (println (str "http://localhost:3000" (post :url)))
                 (conj acc { (post :url) (post/to-markdown layout-page post) })) {})))
 
 (defn markdown-pages [pages]
