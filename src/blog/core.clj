@@ -27,12 +27,9 @@
        [:h1 [:a {:href "/"} "the programmer language,"]]
        [:div.body page]]]))
 
-(defn markdown-posts [pages]
-  (->> pages
-      (map (fn [[k v]] (post/from-markdown k v)))
-      (reduce (fn [acc post]
-                (println (str "http://localhost:3000" (post :url)))
-                (conj acc { (post :url) (post/to-markdown layout-page post) })) {})))
+(defn markdown-posts [posts]
+  (reduce (fn [acc post]
+            (conj acc { (post :url) (post/to-markdown layout-page post) })) {} posts))
 
 (defn markdown-pages [pages]
   (zipmap (map #(-> %
@@ -42,20 +39,30 @@
           (map #(fn [req] (layout-page req (md/to-html % [:autolinks :fenced-code-blocks :strikethrough])))
                (vals pages))))
 
+(defn markdown-index [index posts]
+  (let [render-index (fn []
+                       (fn [req]
+                         (let [rendered (md/to-html index [:autolinks])
+                               rendered-posts (map (fn [post] ((post/to-markdown identity post) req) posts))]
+                           (layout-page req (str rendered rendered-posts)))))]
+    {"/index.html" render-index}))
+
 (defn prepare-page [page req]
   (-> (if (string? page) page (page req))
       highlight-code-blocks))
 
 (defn get-raw-pages []
-  (stasis/merge-page-sources
-    {:public
-     (stasis/slurp-directory "resources/public" #".*\.(html|css|js)$")
-     :index
-     (markdown-pages {"/index.html" (slurp "resources/index.md")})
-     :partials
-     (markdown-pages (stasis/slurp-directory "resources/partials" #".*\.(md|markdown)"))
-     :posts
-     (markdown-posts (stasis/slurp-directory "resources/posts" #"\.(md|markdown)$"))}))
+  (let [post-map (stasis/slurp-directory "resources/posts" #"\.(md|markdown)$")
+        posts (map (fn [[k v]] (post/from-markdown k v)) post-map)]
+    (stasis/merge-page-sources
+      {:public
+       (stasis/slurp-directory "resources/public" #".*\.(html|css|js)$")
+       :index
+       (markdown-index (slurp "resources/index.md") posts)
+       :partials
+       (markdown-pages (stasis/slurp-directory "resources/partials" #".*\.(md|markdown)"))
+       :posts
+       (markdown-posts posts)})))
 
 (defn prepare-pages [pages]
   (zipmap (keys pages)
