@@ -10,7 +10,9 @@
                  [me.raynes/cegdown "0.1.1"]
                  [enlive "1.1.5"]
                  [clygments "0.1.1"]
-                 [optimus "0.14.2"]]
+                 [optimus "0.14.2"]
+                 [clj-yaml "0.4.0"]
+                 [clj-time "0.7.0"]]
   :ring {:handler blog.core/app}
   :aliases {"build-site" ["run" "-m" "blog.core/export"]}
   :profiles {:dev {:plugins [[lein-ring "0.8.10"]]}

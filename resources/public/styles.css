@@ -6,7 +6,13 @@ pre {
 }
 
 body {
-  font: 16px Helvetica, arial, freesans, clean, sans-serif;
+  font-family: 'PT Serif', Georgia, Times, 'Times New Roman', serif;
   line-height: 1.5;
   margin: 0 10px;
+}
+
+.container {
+  margin: 0px auto;
+  font-size: 18px;
+  width: 600px;
 }

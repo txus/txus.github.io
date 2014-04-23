@@ -6,6 +6,7 @@
             [optimus.link :as link]
             [optimus.strategies :refer [serve-live-assets]]
             [blog.highlight :refer [highlight-code-blocks]]
+            [blog.post :as post]
             [clojure.java.io :as io]
             [clojure.string :as str]
             [me.raynes.cegdown :as md]
@@ -18,19 +19,27 @@
      [:meta {:charset "utf-8"}]
      [:meta {:name "viewport"
              :content "width=device-width, initial-scale=1.0"}]
-     [:title "i like programmar languages but nothing ever works,"]
+     [:title "the programmer language,"]
      [:link {:rel "stylesheet" :href (link/file-path request "/styles.css")}]]
 
     [:body
-     [:div.logo "blog.txus.io"]
-     [:div.body page]]))
+     [:div.container
+       [:h1 "the programmer language,"]
+       [:div.body page]]]))
 
-(def pegdown-options ;; https://github.com/sirthias/pegdown
-  [:autolinks :fenced-code-blocks :strikethrough])
+(defn markdown-posts [pages]
+  (->> pages
+      (map (fn [[k v]] (post/from-markdown k v)))
+      (reduce (fn [acc post]
+                (println (post :url))
+                (conj acc { (post :url) (post/to-markdown layout-page post) })) {})))
 
 (defn markdown-pages [pages]
-  (zipmap (map #(str/replace % #"\.md$" "") (keys pages))
-          (map #(fn [req] (layout-page req (md/to-html % pegdown-options)))
+  (zipmap (map #(-> %
+                    (str/replace #"\.md$" "")
+                    (str/replace #"\.markdown$" ""))
+               (keys pages))
+          (map #(fn [req] (layout-page req (md/to-html % [:autolinks :fenced-code-blocks :strikethrough])))
                (vals pages))))
 
 (defn prepare-page [page req]
@@ -44,9 +53,9 @@
      :index
      (markdown-pages {"/index.html" (slurp "resources/index.md")})
      :partials
-     (markdown-pages (stasis/slurp-directory "resources/partials" #".*\.md"))
+     (markdown-pages (stasis/slurp-directory "resources/partials" #".*\.(md|markdown)"))
      :posts
-     (markdown-pages (stasis/slurp-directory "resources/posts" #"\.md$"))}))
+     (markdown-posts (stasis/slurp-directory "resources/posts" #"\.(md|markdown)$"))}))
 
 (defn prepare-pages [pages]
   (zipmap (keys pages)
