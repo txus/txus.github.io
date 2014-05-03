@@ -13,6 +13,8 @@
             [stasis.core :as stasis]
             [hiccup.page :refer [html5]]))
 
+(def analytics-id "UA-19362711-1")
+
 (defn layout-page [request page]
   (html5
     [:head
@@ -25,7 +27,17 @@
     [:body
      [:div.container
        [:h1 [:a {:href "/"} "the programmer language,"]]
-       [:div.body page]]]))
+       [:div.body page]]
+     [:script {:type "text/javascript"}
+      (str "var _gaq = _gaq || [];
+            _gaq.push(['_setAccount', '" analytics-id "']);
+            _gaq.push(['_trackPageview']);
+
+            (function() {
+            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+            })();")]]))
 
 (defn markdown-posts [posts]
   (reduce (fn [acc post]
