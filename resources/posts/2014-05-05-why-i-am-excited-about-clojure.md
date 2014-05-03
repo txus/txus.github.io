@@ -3,9 +3,9 @@ title: "Why I am excited about Clojure"
 categories: clojure
 ---
 
-I've been meaning to write about Clojure for some time now. Unfortunately, as
-it often happens, I felt the urge to rewrite my entire blog in Clojure first,
-and that delayed me a bit. So let's get to it!
+I've been meaning to write about [Clojure][clojure] for some time now.
+Unfortunately, as it often happens, I felt the urge to rewrite my entire blog
+in Clojure first, and that delayed me a bit. So let's get to it!
 
 My first real language was Ruby. I still do Ruby every day when doing client
 work, mostly Rails apps. I still use Ruby to prototype lots of things -- it's
@@ -85,4 +85,7 @@ feedback and its inevitable lower focus would have simply blocked. That's one
 of my favorite parts of Clojure.
 
 So, those are my current thoughts and feelings about Clojure, summarized. If
-you haven't tried it, I highly recomment you to do it.
+you haven't tried it, I highly recommend you to do it: check out [their
+website][clojure] to learn how to get started.
+
+[clojure]: http://clojure.org
