@@ -15,7 +15,7 @@
                  [clj-time "0.7.0"]
                  [midje "1.6.0"]]
   :ring {:handler blog.core/app}
-  :plugis [[lein-midje "3.1.3"]]
+  :plugins [[lein-midje "3.1.3"]]
   :aliases {"build-site" ["run" "-m" "blog.core/export"]}
   :profiles {:dev {:plugins [[lein-ring "0.8.10"]]}})
 

@@ -14,6 +14,10 @@ pre {
   padding: 15px
 }
 
+hr {
+  margin: 40px 0;
+}
+
 body {
   /* font-family: 'PT Serif', Georgia, Times, 'Times New Roman', serif; */
   line-height: 1.4;

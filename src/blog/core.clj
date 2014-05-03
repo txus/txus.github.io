@@ -40,11 +40,13 @@
                (vals pages))))
 
 (defn markdown-index [index posts]
-  (let [render-index (fn []
-                       (fn [req]
-                         (let [rendered (md/to-html index [:autolinks])
-                               rendered-posts (map (fn [post] ((post/to-markdown identity post) req) posts))]
-                           (layout-page req (str rendered rendered-posts)))))]
+  (let [render-index (fn [req]
+                       (let [rendered-posts (->> posts
+                                                 (map (fn [post] ((post/to-markdown (fn [_ page] page) post) req)))
+                                                 (interpose "<hr/>")
+                                                 (reduce str)
+                                                 (str (md/to-html index [:autolinks])))]
+                         (layout-page req rendered-posts)))]
     {"/index.html" render-index}))
 
 (defn prepare-page [page req]
@@ -53,7 +55,11 @@
 
 (defn get-raw-pages []
   (let [post-map (stasis/slurp-directory "resources/posts" #"\.(md|markdown)$")
-        posts (map (fn [[k v]] (post/from-markdown k v)) post-map)]
+        posts (->> post-map
+                   (map (fn [[k v]] [k v]))
+                   (sort-by (fn [[k v]] k))
+                   reverse
+                   (map (fn [[k v]] (post/from-markdown k v))))]
     (stasis/merge-page-sources
       {:public
        (stasis/slurp-directory "resources/public" #".*\.(html|css|js)$")
