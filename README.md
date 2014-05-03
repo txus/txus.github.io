@@ -1,14 +1,9 @@
 # blog
 
-A Clojure library designed to ... well, that part is up to you.
+To build:
 
-## Usage
+    make
 
-FIXME
+To deploy to gh-pages:
 
-## License
-
-Copyright © 2014 FIXME
-
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
+    make deploy
