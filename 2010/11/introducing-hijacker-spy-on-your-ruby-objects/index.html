@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+
+<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>the programmer language,</title><link rel="stylesheet" href="/3a91ca427050/styles.css" /></head><body><div class="container"><h1><a href="/">the programmer language,</a></h1><div class="body"><div class="post"><span class="date">Nov 21, 2010</span>
+
+<header><a href="/2010/11/introducing-hijacker-spy-on-your-ruby-objects">Introducing Hijacker - spy on your ruby objects!</a></header><p>Ok, so yesterday I woke up with two things in mind: doing something with DRb, and doing something with metaprogramming (just for the lulz). So I first implemented a little spy pattern to spy on objects, classes and their instances, mixed it with DRb, and came up with the hijacker idea.</p><p>You can check out <strong>hijacker</strong>'s source code in <a href="http://github.com/txus/hijacker">the Github repo</a>.</p><p>So, let's get started. Hijacker is two things indeed: a server and a spy.</p><h2>Hijacker: the spy</h2><p>On the <strong>client</strong> side (your ruby code), hijacker is a utility that lets you <strong>spy</strong> on any object or class. (Spying on a class also implies spying on its instances, unless you override this behavior.) The first step is telling hijacker <strong>where</strong> to send its spy reports. This can be done at three levels: either globally...</p>
+<pre><code class="codehilite"><span class="no">Hijacker</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span>
+
+  <span class="c1"># Sets the DRb uri to which the reports are sent.</span>
+  <span class="c1"># (Ideally, where your hijacker server listens)</span>
+  <span class="n">uri</span> <span class="s1">'druby://localhost:8787'</span>
+<span class="k">end</span>
+</code></pre><p>...or specifying a different uri for a particular spied object...</p>
+<pre><code class="codehilite"><span class="no">Hijacker</span><span class="o">.</span><span class="n">spy</span><span class="p">(</span><span class="n">my_object</span><span class="p">,</span>
+             <span class="ss">:uri</span> <span class="o">=&gt;</span> <span class="s1">'druby://localhost:9999'</span><span class="p">)</span>
+</code></pre><p>...or specifying an uri for a particular spied object WITHIN a block:</p>
+<pre><code class="codehilite"><span class="no">Hijacker</span><span class="o">.</span><span class="n">spying</span><span class="p">(</span><span class="n">my_object</span><span class="p">,</span>
+                <span class="ss">:uri</span> <span class="o">=&gt;</span> <span class="s1">'druby://localhost:8787'</span><span class="p">)</span> <span class="k">do</span>
+  <span class="c1"># do something with my_object</span>
+<span class="k">end</span>
+</code></pre><p>What I mean for <strong>spying</strong> is registering every method call on the spied object, and reporting the <strong>method name</strong>, the <strong>arguments</strong> and the <strong>return value</strong>.</p><p>Every time any activity on a spied object is registered, it is immediately sent to the specified URI (may it be the global one, or specified by any other means). There, on that URI, a patient hijacker server is waiting...</p><h2>Hijacker: the server</h2><p>The hijacker server is fired up serving a particular handler, which will receive those spy reports and handle them somehow. For now the only handler implemented is Logger, so we start hijacker like this:</p>
+<pre><code class="codehilite">$ hijacker logger
+</code></pre><p>And the server is started with the Logger handler! It will tell you the DRb uri you have to connect to from your ruby code.</p><p>The Logger handler receives the report and shows it in a colourful way, just like a nice logger is expected to.</p><h2>Creative uses for the Logger handler</h2><p>Ok, Logger is a very simple handler, but combined with the power of DRb and Hijacker, it can be quite useful! Imagine you have two sensitive classes in some ruby code, let's call them <strong>PaymentGateway</strong> and <strong>PlanUpgrader</strong>. To avoid clutter in our logging server output we could use hijacker like this:</p>
+<pre><code class="codehilite"><span class="c1"># We are only spying on instances of PaymentGateway and</span>
+<span class="c1"># sending their activity to druby://localhost:2222</span>
+<span class="no">Hijacker</span><span class="o">.</span><span class="n">spy</span><span class="p">(</span><span class="no">PaymentGateway</span><span class="p">,</span>
+             <span class="ss">:only</span> <span class="o">=&gt;</span> <span class="ss">:instance_methods</span><span class="p">,</span>
+             <span class="ss">:uri</span> <span class="o">=&gt;</span> <span class="s1">'druby://localhost:2222'</span><span class="p">)</span>
+
+<span class="c1"># Let's spy on PlanUpgrader's class methods, which upgrade</span>
+<span class="c1"># users' paid plans, and send the activity to a different</span>
+<span class="c1"># hijacker logging server in druby://localhost:3333</span>
+<span class="no">Hijacker</span><span class="o">.</span><span class="n">spy</span><span class="p">(</span><span class="no">PlanUpgrader</span><span class="p">,</span>
+             <span class="ss">:only</span> <span class="o">=&gt;</span> <span class="ss">:singleton_methods</span><span class="p">,</span>
+             <span class="ss">:uri</span> <span class="o">=&gt;</span> <span class="s1">'druby://localhost:3333'</span><span class="p">)</span>
+
+<span class="c1"># If we had a veeery sensitive part of code where the user</span>
+<span class="c1"># plan is sent some methods, we could spy *only* that part</span>
+<span class="c1"># like this: (in this case the server uri is the global one)</span>
+<span class="no">Hijacker</span><span class="o">.</span><span class="n">spying</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">plan</span><span class="p">)</span> <span class="k">do</span>
+  <span class="n">user</span><span class="o">.</span><span class="n">plan</span><span class="o">.</span><span class="n">change_with</span><span class="p">(</span><span class="n">untrusted_args</span><span class="p">)</span>
+  <span class="c1"># do something else</span>
+<span class="k">end</span>
+</code></pre><h2>Extending Hijacker with your own handlers!</h2><p>What if you wanted a handler that calculates the average number of arguments sent to methods of a class? Or maybe keeping track of the mostly used object types as arguments, to see if you could replace them with more lightweight objects?</p><p>It is really easy to write your own handlers. Inside hijacker code, handlers live here:</p>
+<pre><code class="codehilite">lib/hijacker/handlers/your_handler.rb
+</code></pre><p>They are autoloaded and automatically registered, so all you have to do is write them like this:</p>
+<pre><code class="codehilite"><span class="k">module</span> <span class="nn">Hijacker</span>
+  <span class="c1"># You only have to subclass Hijacker::Handler...</span>
+  <span class="k">class</span> <span class="nc">MyHandler</span> <span class="o">&lt;</span> <span class="no">Handler</span>
+
+    <span class="c1"># You must implement a class method named cli_options</span>
+    <span class="c1"># which must return a Trollop-friendly Proc, for</span>
+    <span class="c1"># command-line options parsing.</span>
+    <span class="c1">#</span>
+    <span class="c1"># These options can be accessed from within the</span>
+    <span class="c1"># #handlemethod by calling the `opts` method.</span>
+    <span class="c1">#</span>
+    <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">cli_options</span>
+      <span class="no">Proc</span><span class="o">.</span><span class="n">new</span> <span class="p">{</span>
+        <span class="n">opt</span> <span class="ss">:without_foo</span><span class="p">,</span>
+            <span class="s2">"Don't use foo to handle the method name"</span>
+        <span class="n">opt</span> <span class="ss">:using_bar</span><span class="p">,</span>
+            <span class="s2">"Use bar as much as you can"</span>
+      <span class="p">}</span>
+    <span class="k">end</span>
+
+    <span class="c1"># This is the most important method. This is what</span>
+    <span class="c1"># is called every time a method call is performed</span>
+    <span class="c1"># on a hijacked object. The received params look</span>
+    <span class="c1"># like this:</span>
+    <span class="c1">#</span>
+    <span class="c1">#   method    :foo</span>
+    <span class="c1">#</span>
+    <span class="c1">#   args      [{:inspect =&gt; '3',</span>
+    <span class="c1">#               :class =&gt; 'Fixnum'},</span>
+    <span class="c1">#              {:inspect =&gt; '"string"',</span>
+    <span class="c1">#               :class =&gt; 'String'}]</span>
+    <span class="c1">#</span>
+    <span class="c1">#   retval    [{:inspect =&gt; ':bar',</span>
+    <span class="c1">#               :class =&gt; 'Symbol'}]</span>
+    <span class="c1">#</span>
+    <span class="c1">#   object    [{:inspect =&gt; '#&lt;MyClass:0x003457&gt;',</span>
+    <span class="c1">#               :class =&gt; 'MyClass'}]</span>
+    <span class="c1">#</span>
+    <span class="k">def</span> <span class="nf">handle</span><span class="p">(</span><span class="nb">method</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">retval</span><span class="p">,</span> <span class="n">object</span><span class="p">)</span>
+      <span class="c1"># Do what you want with these!</span>
+    <span class="k">end</span>
+
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p>Try to think of creative uses of hijacker, write your own handlers and send them to me ZOMG I CAN HAZ MOAR HENDLARZ :3</p><p>Feel free to send me feedback on what do you think!</p></div></div></div><script type="text/javascript">var _gaq = _gaq || [];
+            _gaq.push(['_setAccount', 'UA-19362711-1']);
+            _gaq.push(['_trackPageview']);
+
+            (function() {
+            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+            })();</script></body></html>

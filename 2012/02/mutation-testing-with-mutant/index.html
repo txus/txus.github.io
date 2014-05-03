@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+
+<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>the programmer language,</title><link rel="stylesheet" href="/3a91ca427050/styles.css" /></head><body><div class="container"><h1><a href="/">the programmer language,</a></h1><div class="body"><div class="post"><span class="date">Feb 27, 2012</span>
+
+<header><a href="/2012/02/mutation-testing-with-mutant">Mutation testing with Mutant</a></header><p>Hi everyone! I know it has been a while since my last post (more than half a year). I've spent this time learning a ton of interesting stuff, and done most of my writing on the <a href="http://blog.codegram.com">Codegram blog</a>. I'm preparing a series of blogposts about what I've learned these past few months, so expect a bunch of updates to my RSS feed :) Anyway, today I'm going to talk about <a href="http://github.com/txus/mutant">Mutant</a>.</p><h2>What is Mutant?</h2><p>As stated in the project description:</p>
+<blockquote><p>Mutant is a mutation tester. It modifies your code and runs your tests to make sure they fail. The idea is that if code can be changed and your tests don't notice, either that code isn't being covered or it doesn't do anything.</p>
+</blockquote><p>The first time I read about mutation testing, it was in the <a href="http://pragprog.com/book/achbd/the-rspec-book">RSpec book</a>. It talked about <a href="http://github.com/seattlerb/heckle">Heckle</a>, a mutation testing library that runs on Ruby 1.8.x.</p><p>Last year <a href="http://twitter.com/justinko">Justin Ko</a> (from the <a href="http://github.com/rspec">RSpec</a> core team) started a rewrite running on <a href="http://rubini.us">Rubinius</a>: Mutant was born!</p><p>A few weeks ago Justin offered me to partner up for the project, and since he's got a lot of work to do on the upcoming RSpec 3, I eventually <a href="http://github.com/txus/mutant">took over Mutant</a> to bring it to 1.0!</p><p>In fact today I released 0.1.1, which is pretty much usable, and I encourage you to try it in your projects! It works in rubinius-head, either 1.8 or 1.9 mode, and for now it supports only the RSpec testing framework (although support for MiniTest and other frameworks will be very soon in Mutant).</p><p>Anyway, let's see a practical example about how to use it.</p><h2>Mutation testing</h2><p>Mutation testing consists in programmatically modifying the code of a method and asserting that the tests consequently fail.</p><p>First of all, let's install Rubinius head and the Mutant gem. To do it with RVM, just type on the terminal:</p>
+<pre><code class="codehilite">$ rvm install rbx-head
+$ rvm use rbx-head
+$ gem install mutant
+</code></pre><p>Now imagine you had this Worker class in a file and another file with its spec:</p>
+<pre><code class="codehilite"><span class="c1"># worker.rb</span>
+<span class="k">class</span> <span class="nc">Worker</span>
+  <span class="kp">attr_reader</span> <span class="ss">:job</span>
+
+  <span class="k">def</span> <span class="nf">get_job</span>
+    <span class="vi">@job</span> <span class="o">=</span> <span class="ss">:some_job</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># worker_spec.rb</span>
+<span class="vg">$:</span> <span class="o">&lt;&lt;</span> <span class="s1">'.'</span> <span class="c1"># Hack for 1.9 mode</span>
+<span class="nb">require</span> <span class="s1">'rspec/autorun'</span>
+<span class="nb">require</span> <span class="s1">'worker'</span>
+
+<span class="n">describe</span> <span class="no">Worker</span> <span class="k">do</span>
+  <span class="n">before</span> <span class="k">do</span>
+    <span class="vi">@worker</span> <span class="o">=</span> <span class="no">Worker</span><span class="o">.</span><span class="n">new</span>
+  <span class="k">end</span>
+
+  <span class="n">it</span> <span class="s1">'is free by default'</span> <span class="k">do</span>
+    <span class="vi">@worker</span><span class="o">.</span><span class="n">job</span><span class="o">.</span><span class="n">should</span> <span class="n">be_nil</span>
+  <span class="k">end</span>
+
+  <span class="n">context</span> <span class="s1">'when it has a job'</span> <span class="k">do</span>
+    <span class="n">it</span> <span class="s1">'should have :some_job'</span> <span class="k">do</span>
+      <span class="vi">@worker</span><span class="o">.</span><span class="n">get_job</span>
+      <span class="vi">@worker</span><span class="o">.</span><span class="n">job</span><span class="o">.</span><span class="n">should_not</span> <span class="n">be_nil</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p>Let's run Mutant now:</p>
+<pre><code class="codehilite">$ mutate "Worker#get_job" worker_spec.rb
+</code></pre><p>It will first run the tests, making sure they pass, <strong>then</strong> mutate the Worker's <code>#get_job</code> method, and pass the tests again. In this case, the method is simple, so it performs a single mutation, as we can see in the output:</p>
+<pre><code class="codehilite">Mutating line 6
+  @job = :some_job &gt;&gt;&gt; @job = :BcNKAyqRSfzMPGeiLmGekgAIxYua
+</code></pre><p>And the test still passes after that, because it isn't checking for <code>@job</code> being specifically <code>:some_job</code>, but just any truthy value. This means Mutant will fail, because your test isn't asserting what it should.</p><p>If we changed the test to check that <code>@worker.job.should eq(:some_job)</code>, then Mutant wouldn't complain and life would be good :)</p><h2>How can you help out?</h2><p>Now that Mutant 0.1.1 is out, the best way to help out is to try and run it on your projects. For now those should be projects using RSpec, but soon I'll implement support for other frameworks (or maybe you will!). So you know what to do:</p>
+<pre><code class="codehilite">$ rvm install rbx-head
+$ rvm use rbx-head
+$ gem install mutant
+</code></pre><p>And MUTATE ALL OF THE METHODS!</p><p>If you want to contribute with code or even just suggestions, I suggest you to check out the <a href="https://trello.com/board/mutant/4f452510101d860b203b542d">development roadmap</a>. It is open to comments and votes, so you can see what's going on and participate.</p><p>I hope you guys enjoyed reading this post. See you on Github!</p></div></div></div><script type="text/javascript">var _gaq = _gaq || [];
+            _gaq.push(['_setAccount', 'UA-19362711-1']);
+            _gaq.push(['_trackPageview']);
+
+            (function() {
+            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+            })();</script></body></html>

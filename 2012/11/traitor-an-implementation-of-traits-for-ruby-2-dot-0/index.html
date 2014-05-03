@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+
+<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>the programmer language,</title><link rel="stylesheet" href="/3a91ca427050/styles.css" /></head><body><div class="container"><h1><a href="/">the programmer language,</a></h1><div class="body"><div class="post"><span class="date">Nov 06, 2012</span>
+
+<header><a href="/2012/11/traitor-an-implementation-of-traits-for-ruby-2-dot-0">Traitor - an implementation of traits for Ruby 2.0</a></header><p>Refinements are <strong>the</strong> most buzzed new feature in Ruby 2.0. Admittedly, they're probably a bad idea. But honestly I couldn't resist trying them to implement traits!</p><h2>What are traits?</h2><p>Traits are like Ruby modules in the sense that they can be used to define composable units of behavior, but they are not included hierarchically. They are truly composable, meaning that are pieces that <em>must</em> either fit perfectly or the host object must provide a way for them to do it, normally resolving conflicts by explicitly redefining the conflicting methods.</p><p>Since I first read about traits, I found them better than Ruby mixins, that's why I implemented them natively in <a href="https://github.com/txus/noscript">Noscript</a>, my programming language running on the Rubinius VM. But having traits in our beloved Ruby turned out to be less trivial than expected.</p><p>A while ago I tried to implement traits with pure Ruby and gave up. The problem basically was the way in which a Ruby module is included in a class or extended in an object. One of the power features of traits is the <strong>explicit conflict resolution</strong> between conflicting implementations of the same method, and that turned out to be a pain in the ass with modules, so I gave up for a while.</p><h2>Introducing Traitor</h2><p>So when I heard that MRI 2.0 had a release candidate with refinements, I thought: well let's give it a try. FUN!!!</p><p>And so I did! <a href="https://github.com/txus/traitor">Traitor</a> is the result. Let's see how it works:</p><p>Let's say we want to have <code>Rectangle</code> objects that have color and shape. Those two behaviors will be composed as traits, let's see <code>Colorable</code>:</p>
+<pre><code class="codehilite"><span class="no">Colorable</span> <span class="o">=</span> <span class="no">Trait</span><span class="o">.</span><span class="n">new</span> <span class="k">do</span>
+  <span class="kp">attr_accessor</span> <span class="ss">:color</span>
+
+  <span class="k">def</span> <span class="nf">==</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+    <span class="n">other</span><span class="o">.</span><span class="n">color</span> <span class="o">==</span> <span class="n">color</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p>Easy. For now, <code>Colorable</code> only knows how to compare itself to other <code>Colorable</code> objects. Let's try and <code>use</code> it from <code>Rectangle</code>:</p>
+<pre><code class="codehilite"><span class="k">class</span> <span class="nc">Rectangle</span>
+  <span class="n">uses</span> <span class="no">Colorable</span>
+<span class="k">end</span>
+
+<span class="n">blue</span><span class="p">,</span> <span class="n">red</span>  <span class="o">=</span> <span class="no">Rectangle</span><span class="o">.</span><span class="n">new</span><span class="p">,</span> <span class="no">Rectangle</span><span class="o">.</span><span class="n">new</span>
+<span class="n">blue</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="ss">:blue</span>
+<span class="n">red</span><span class="o">.</span><span class="n">color</span>  <span class="o">=</span> <span class="ss">:red</span>
+
+<span class="n">blue</span> <span class="o">==</span> <span class="n">red</span>
+<span class="c1"># =&gt; false</span>
+</code></pre><p>Now let's implement the <code>Shapeable</code> trait:</p>
+<pre><code class="codehilite"><span class="no">Shapeable</span> <span class="o">=</span> <span class="no">Trait</span><span class="o">.</span><span class="n">new</span> <span class="k">do</span>
+  <span class="kp">attr_accessor</span> <span class="ss">:sides</span>
+
+  <span class="k">def</span> <span class="nf">==</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+    <span class="n">other</span><span class="o">.</span><span class="n">sides</span> <span class="o">==</span> <span class="n">sides</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p><code>Shapeable</code> knows how to compare itself to other <code>Shapeable</code> objects, through the number of sides that it has.</p><p>Our <code>Rectangle</code> needs to be both, the problem is that if we <code>use</code> both traits, since they have no hierarchy, a rectangle won't know how to respond to <code>#==</code>. What implementation should it use, the <code>Colorable</code> or the <code>Shapeable</code>? No way of knowing. When in doubt, Rectangle will always raise a trait conflict error:</p>
+<pre><code class="codehilite"><span class="k">class</span> <span class="nc">Rectangle</span>
+  <span class="n">uses</span> <span class="no">Colorable</span>
+  <span class="n">uses</span> <span class="no">Shapeable</span>
+
+  <span class="c1"># A Rectangle has 4 sides, thank God.</span>
+  <span class="k">def</span> <span class="nf">sides</span>
+    <span class="mi">4</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="no">Rectangle</span><span class="o">.</span><span class="n">new</span> <span class="o">==</span> <span class="no">Rectangle</span><span class="o">.</span><span class="n">new</span>
+<span class="c1"># TraitConflict: Conflicting methods: #==</span>
+</code></pre><h3>Resolving conflicts explicitly</h3><p>We must provide a mechanism to resolve the conflict in Rectangle, our host class. Fortunately, it is as easy as defining our own version of <code>#==</code>:</p>
+<pre><code class="codehilite"><span class="k">class</span> <span class="nc">Rectangle</span>
+  <span class="n">uses</span> <span class="no">Shapeable</span>
+  <span class="n">uses</span> <span class="no">Colorable</span>
+
+  <span class="c1"># A Rectangle has 4 sides, thank God.</span>
+  <span class="k">def</span> <span class="nf">sides</span>
+    <span class="mi">4</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">==</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+    <span class="n">colorable_equal</span> <span class="o">=</span> <span class="n">trait_send</span><span class="p">(</span><span class="no">Colorable</span><span class="p">,</span> <span class="ss">:==</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+    <span class="n">shapeable_equal</span> <span class="o">=</span> <span class="n">trait_send</span><span class="p">(</span><span class="no">Shapeable</span><span class="p">,</span> <span class="ss">:==</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+    <span class="n">colorable_equal</span> <span class="o">&amp;&amp;</span> <span class="n">shapeable_equal</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p>Now a <code>Rectangle</code> knows how to compare itself to other rectangles, via both its shape and color.</p><p>The cool thing is that we have granular access to any implementation of our traits via <code>trait_send</code>. That allows us to compose all implementations, ignore some, or do whatever we want with them.</p></div></div></div><script type="text/javascript">var _gaq = _gaq || [];
+            _gaq.push(['_setAccount', 'UA-19362711-1']);
+            _gaq.push(['_trackPageview']);
+
+            (function() {
+            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+            })();</script></body></html>

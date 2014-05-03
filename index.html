@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+
+<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>the programmer language,</title><link rel="stylesheet" href="/3a91ca427050/styles.css" /></head><body><div class="container"><h1><a href="/">the programmer language,</a></h1><div class="body"><p><strong>txus</strong> <i>/t∫us/</i><br /><small>general enthusiast</small></p>
+<ol>
+  <li>Programmer based in Berlin.</li>
+  <li>Obsessed with programming language design, compilers, virtual machines. Some things I work on:
+  <ul>
+    <li><a href="https://github.com/txus/lambra">Lambra</a>: Distributed programming language inspired by Erlang and Clojure.</li>
+    <li><a href="https://github.com/txus/terrorvm">TerrorVM</a>: Language-agnostic VM for dynamic programming languages.</li>
+  </ul></li>
+  <li>Co-founder of <a href="http://codegram.com">Codegram</a> and conference organizer (<a href="http://baruco.org">Barcelona Ruby  Conference</a>, <a href="http://futurejs.org">Barcelona Future JS</a>).</li>
+  <li>Musician (<a href="https://soundcloud.com/mrkl-berlin">MRKL</a>).</li>
+  <li>Successful astronaut.</li>
+</ol><p>I'm <a href="https://twitter.com/txustice">@txustice</a> on Twitter and <a href="https://github.com/txus">txus</a> on GitHub.</p>
+<hr /><div class="post"><span class="date">Nov 06, 2012</span>
+
+<header><a href="/2012/11/traitor-an-implementation-of-traits-for-ruby-2-dot-0">Traitor - an implementation of traits for Ruby 2.0</a></header><p>Refinements are <strong>the</strong> most buzzed new feature in Ruby 2.0. Admittedly, they're probably a bad idea. But honestly I couldn't resist trying them to implement traits!</p><h2>What are traits?</h2><p>Traits are like Ruby modules in the sense that they can be used to define composable units of behavior, but they are not included hierarchically. They are truly composable, meaning that are pieces that <em>must</em> either fit perfectly or the host object must provide a way for them to do it, normally resolving conflicts by explicitly redefining the conflicting methods.</p><p>Since I first read about traits, I found them better than Ruby mixins, that's why I implemented them natively in <a href="https://github.com/txus/noscript">Noscript</a>, my programming language running on the Rubinius VM. But having traits in our beloved Ruby turned out to be less trivial than expected.</p><p>A while ago I tried to implement traits with pure Ruby and gave up. The problem basically was the way in which a Ruby module is included in a class or extended in an object. One of the power features of traits is the <strong>explicit conflict resolution</strong> between conflicting implementations of the same method, and that turned out to be a pain in the ass with modules, so I gave up for a while.</p><h2>Introducing Traitor</h2><p>So when I heard that MRI 2.0 had a release candidate with refinements, I thought: well let's give it a try. FUN!!!</p><p>And so I did! <a href="https://github.com/txus/traitor">Traitor</a> is the result. Let's see how it works:</p><p>Let's say we want to have <code>Rectangle</code> objects that have color and shape. Those two behaviors will be composed as traits, let's see <code>Colorable</code>:</p>
+<pre><code class="codehilite"><span class="no">Colorable</span> <span class="o">=</span> <span class="no">Trait</span><span class="o">.</span><span class="n">new</span> <span class="k">do</span>
+  <span class="kp">attr_accessor</span> <span class="ss">:color</span>
+
+  <span class="k">def</span> <span class="nf">==</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+    <span class="n">other</span><span class="o">.</span><span class="n">color</span> <span class="o">==</span> <span class="n">color</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p>Easy. For now, <code>Colorable</code> only knows how to compare itself to other <code>Colorable</code> objects. Let's try and <code>use</code> it from <code>Rectangle</code>:</p>
+<pre><code class="codehilite"><span class="k">class</span> <span class="nc">Rectangle</span>
+  <span class="n">uses</span> <span class="no">Colorable</span>
+<span class="k">end</span>
+
+<span class="n">blue</span><span class="p">,</span> <span class="n">red</span>  <span class="o">=</span> <span class="no">Rectangle</span><span class="o">.</span><span class="n">new</span><span class="p">,</span> <span class="no">Rectangle</span><span class="o">.</span><span class="n">new</span>
+<span class="n">blue</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="ss">:blue</span>
+<span class="n">red</span><span class="o">.</span><span class="n">color</span>  <span class="o">=</span> <span class="ss">:red</span>
+
+<span class="n">blue</span> <span class="o">==</span> <span class="n">red</span>
+<span class="c1"># =&gt; false</span>
+</code></pre><p>Now let's implement the <code>Shapeable</code> trait:</p>
+<pre><code class="codehilite"><span class="no">Shapeable</span> <span class="o">=</span> <span class="no">Trait</span><span class="o">.</span><span class="n">new</span> <span class="k">do</span>
+  <span class="kp">attr_accessor</span> <span class="ss">:sides</span>
+
+  <span class="k">def</span> <span class="nf">==</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+    <span class="n">other</span><span class="o">.</span><span class="n">sides</span> <span class="o">==</span> <span class="n">sides</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p><code>Shapeable</code> knows how to compare itself to other <code>Shapeable</code> objects, through the number of sides that it has.</p><p>Our <code>Rectangle</code> needs to be both, the problem is that if we <code>use</code> both traits, since they have no hierarchy, a rectangle won't know how to respond to <code>#==</code>. What implementation should it use, the <code>Colorable</code> or the <code>Shapeable</code>? No way of knowing. When in doubt, Rectangle will always raise a trait conflict error:</p>
+<pre><code class="codehilite"><span class="k">class</span> <span class="nc">Rectangle</span>
+  <span class="n">uses</span> <span class="no">Colorable</span>
+  <span class="n">uses</span> <span class="no">Shapeable</span>
+
+  <span class="c1"># A Rectangle has 4 sides, thank God.</span>
+  <span class="k">def</span> <span class="nf">sides</span>
+    <span class="mi">4</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="no">Rectangle</span><span class="o">.</span><span class="n">new</span> <span class="o">==</span> <span class="no">Rectangle</span><span class="o">.</span><span class="n">new</span>
+<span class="c1"># TraitConflict: Conflicting methods: #==</span>
+</code></pre><h3>Resolving conflicts explicitly</h3><p>We must provide a mechanism to resolve the conflict in Rectangle, our host class. Fortunately, it is as easy as defining our own version of <code>#==</code>:</p>
+<pre><code class="codehilite"><span class="k">class</span> <span class="nc">Rectangle</span>
+  <span class="n">uses</span> <span class="no">Shapeable</span>
+  <span class="n">uses</span> <span class="no">Colorable</span>
+
+  <span class="c1"># A Rectangle has 4 sides, thank God.</span>
+  <span class="k">def</span> <span class="nf">sides</span>
+    <span class="mi">4</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">==</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+    <span class="n">colorable_equal</span> <span class="o">=</span> <span class="n">trait_send</span><span class="p">(</span><span class="no">Colorable</span><span class="p">,</span> <span class="ss">:==</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+    <span class="n">shapeable_equal</span> <span class="o">=</span> <span class="n">trait_send</span><span class="p">(</span><span class="no">Shapeable</span><span class="p">,</span> <span class="ss">:==</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+    <span class="n">colorable_equal</span> <span class="o">&amp;&amp;</span> <span class="n">shapeable_equal</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p>Now a <code>Rectangle</code> knows how to compare itself to other rectangles, via both its shape and color.</p><p>The cool thing is that we have granular access to any implementation of our traits via <code>trait_send</code>. That allows us to compose all implementations, ignore some, or do whatever we want with them.</p></div><hr /><div class="post"><span class="date">Oct 19, 2012</span>
+
+<header><a href="/2012/10/version-your-ruby-objects-with-aversion">Version your Ruby objects with Aversion</a></header><p>During the past few months I've been often daydreaming about functional programming, persistent data structures, and so on. It's something that probably came from learning a bit of Clojure and getting familiar with traditional concepts of the functional paradigm.</p><p>One cool thing that I took from that is the concept of immutability. In programs, mutable state is a rich source of all kinds of problems. For one, your ability to reason about your program becomes impaired -- you cannot trust values anymore. Variables are containers of ever-changing chaos, and especially bad programmers seem to be always in to find new ways of enhancing the insanity of any program through nonsensical mutation.</p><p>Now I've developed a bit of this sixth sense, or aversion towards mutation. When I see mutation in code, my danger sense goes nuts. I might just accept it, but I recognize it and question it.</p><p>What does all of this have to do with versioning objects? Well not much, apart from the fact that versioning objects is a cool thing you can do when you're objects are immutable. Of course after all these random thoughts I needed to code something up to see it in action, and there you go!!</p><h2>Versioning with Aversion</h2><p>When you include <a href="https://github.com/txus/aversion">Aversion</a> in your Ruby objects, every state mutation is explicit and, instead of actually mutate the object, it returns a new instance with the transformation, keeping a history of all the states it went through.</p><p>Let's see how it works. Say we have a Person class:</p>
+<pre><code class="codehilite"><span class="k">class</span> <span class="nc">Person</span>
+  <span class="kp">include</span> <span class="no">Aversion</span>
+  <span class="kp">attr_reader</span> <span class="ss">:hunger</span>
+
+  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">hunger</span><span class="p">)</span>
+    <span class="vi">@hunger</span> <span class="o">=</span> <span class="n">hunger</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">eat</span>
+    <span class="n">transform</span> <span class="k">do</span>
+      <span class="vi">@hunger</span> <span class="o">-=</span> <span class="mi">5</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p>See the <code>transform</code> part? Here's an explicit change of state. Instead of subtracting 5 from our current hunger, what it will do is return a new <strong>version</strong> of the object where this transformation happened. The cool thing is, you can go back too!</p><p>So, our Person instances will be immutable. Every mutation must be explicitly wrapped within a <code>transform</code> block, and will return the new instance:</p>
+<pre><code class="codehilite"><span class="n">john</span>       <span class="o">=</span> <span class="no">Person</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+
+<span class="n">new_john</span>   <span class="o">=</span> <span class="n">john</span><span class="o">.</span><span class="n">eat</span>
+<span class="n">new_john</span><span class="o">.</span><span class="n">hunger</span> <span class="c1"># =&gt; 95</span>
+
+<span class="n">newer_john</span> <span class="o">=</span> <span class="n">new_john</span><span class="o">.</span><span class="n">eat</span>
+<span class="n">newer_john</span><span class="o">.</span><span class="n">hunger</span> <span class="c1"># =&gt; 90</span>
+</code></pre><p>Of course, you can roll back to a previous state:</p>
+<pre><code class="codehilite"><span class="n">new_john_again</span> <span class="o">=</span> <span class="n">newer_john</span><span class="o">.</span><span class="n">rollback</span>
+<span class="n">new_john_again</span><span class="o">.</span><span class="n">hunger</span> <span class="c1"># =&gt; 95</span>
+</code></pre><p>And finally one of the nicest things is that you can also compute the difference between two versions, expressed as an array of transformations, and apply it onto an arbitrary object:</p>
+<pre><code class="codehilite"><span class="n">difference</span> <span class="o">=</span> <span class="n">newer_john</span> <span class="o">-</span> <span class="n">john</span>
+<span class="n">newer_john_again</span> <span class="o">=</span> <span class="n">john</span><span class="o">.</span><span class="n">replay</span><span class="p">(</span><span class="n">difference</span><span class="p">)</span>
+<span class="n">newer_john_again</span><span class="o">.</span><span class="n">hunger</span> <span class="c1"># =&gt; 90</span>
+</code></pre><p>So, if you're curious, just <a href="https://github.com/txus/aversion">grab the github repo</a> and play with it! You surely can find interesting use cases of immutability and versioning in your own programs.</p><p>And also, if you're really curious about persistent data structures but you don't want to learn Clojure just yet, try out <a href="https://github.com/harukizaemon/hamster">Hamster</a>, a Ruby library that implements a ton of persistent data structures.</p></div><hr /><div class="post"><span class="date">Oct 13, 2012</span>
+
+<header><a href="/2012/10/expressing-ruby-code-in-natural-language">Expressing Ruby code in natural language</a></header><p>In my morning shower I'm normally still half asleep so my process of thought is still pretty bizarre and dreamy. This explains why is then when I usually come up with the weirdest ideas.</p><p>The other day I thought about the layer of translation that we apply when we <strong>read</strong> code. Even with a language with a nice syntax like Ruby, we still translate when reading.</p><p>Think of the typical situation: you're stuck with a bug. You've already spent 30 minutes staring at the code, uncapable of detecting what's wrong. In your frustration, you ask a colleague to come and figure this out together. The first thing you do is explain the code to your partner out loud: and then you immediately realize where the problem is. This is called <a href="http://en.wikipedia.org/wiki/Rubber_duck_debugging">rubber duck debugging</a>, because you could have solved the problem by explaining it to a rubber duck on your desk.</p><p>Knowing this (because it happened to me seven thousand million times), and thinking simultaneously about the <a href="http://islalanguage.org/">Isla programming language</a> (an educational programming language for young children), I thought about the cognitive difficulty of learning to program. Harder and more complex syntax equals more cognitive load, and that slows down people when learning to program. That's why I think it's by far easier to start learning to program with a LISP, or even with Ruby, rather than with Erlang.</p><p>So I coded this up:</p><h2>Explain, a Ruby source-to-natural-language compiler</h2><p><a href="https://github.com/txus/explain">Explain</a> is a special kind of a source-to-source compiler: it translates Ruby code to English. This might be used by beginners to gain more insight into what a given piece of code is doing. Let's see an example. Given this Ruby code:</p>
+<pre><code class="codehilite"><span class="k">class</span> <span class="nc">Person</span>
+  <span class="k">def</span> <span class="nf">walk</span><span class="p">(</span><span class="n">distance</span><span class="p">)</span>
+    <span class="vi">@distance</span> <span class="o">+=</span> <span class="n">distance</span>
+    <span class="vi">@hunger</span> <span class="o">+=</span> <span class="mi">2</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">eat</span><span class="p">(</span><span class="n">food</span><span class="p">)</span>
+    <span class="vi">@hunger</span> <span class="o">-=</span> <span class="n">food</span><span class="o">.</span><span class="n">nutritional_value</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p>When we run explain on it we get this:</p>
+<pre><code class="codehilite">$ explain person.rb
+
+Let's describe the general attributes and behavior of any Person.
+
+A Person can **walk**, given a specific distance. This is described as
+follows: its distance will be its distance plus what we previously defined as
+`distance`. Finally we return its hunger will be its hunger plus the number
+2.. 
+
+A Person can **eat**, given a specific food. This is described as follows:
+Finally we return its hunger will be its hunger minus the result of calling
+**nutritional_value** on what we previously defined as `food`..
+And with this we're done describing a Person.
+</code></pre><p>The quality of the translation is not very good yet, but it's a start.</p><p>In the future, <strong>Explain</strong> will also distinguish builtin Ruby methods (such as <strong>map</strong>, <strong>each</strong>, <strong>puts</strong>) and explain them, so the description of the program will be much more high level. Also, it will be able to output different formats, and it might be a good idea to build a web service using it (so beginners can access it even more easily).</p><p>If you're curious about the implementation, it uses the <a href="http://rubini.us">Rubinius</a> builtin parser (Melbourne), which means that it runs only on Rubinius. You can check the code at the <a href="https://github.com/txus/explain">github repo</a> and contribute with issues, ideas or whatever! :)</p><p>For now it is pretty basic, but I think it's a good idea to build upon, and might help people who are new to programming and to Ruby.</p></div><hr /><div class="post"><span class="date">Apr 15, 2012</span>
+
+<header><a href="/2012/04/the-three-cancers-in-the-ruby-community">The three cancers in the Ruby community</a></header><p><em>UPDATE for Russian readers: Kyrylo Silin has translated this article to Russian and put up in his Github repo, <a href="https://github.com/kyrylo/entooru/blob/master/02_the_three_cancers_in_the_ruby_community/ru_the_three_cancers_in_the_ruby_community.md">check it out here</a>!</em></p><p>It's time for a non-technical post. Today I'm going to talk about the part of the developer community I'm most familiar with: the Ruby community. And its three cancers.</p><p>First of all, feel free to despise my thoughts wielding the fact that I'm not a long-time member of the developer community. I've been programming for the past three years (four if CSS counts as programming, which I hope does not). That implies that I'm missing a whole lot of internal insight that you, my dear reader, surely have -- but in my opinion it also gives me the benefit of an external perspective.</p><p>In my humble opinion, there are three cancers of the Ruby community that we should get rid of: <strong>faction mentality</strong>, <strong>scarcity of critical thinking</strong>, and the damn <strong>Pareto rule</strong>. (They may apply to other communities as well, but I'm just talking about the one I feel part of.)</p><h2>Faction mentality</h2><p>As a non-graduate in Political Science, I've spent a lot of time watching people debating. They would debate about fascism, communism, conservatism, liberalism and whatnot. Except that I just lied: they weren't debating, they were confronting each other with labels. They all had one thing in common: they felt strongly identified with a label and despised the ideas of the rest, even when those ideas were the same as theirs.</p><p>That was fun, actually. Whenever I chose to enter those debates, I would confuse everyone by analyzing their ideas <strong>separately</strong> from their labels. For example, I would talk with radically atheist, left-wing Spanish students about how their ideas (and deeply engraved feelings!) connected perfectly with Catholic moral. Or how the Spanish social security system, which they defended, was founded by a pseudo-fascist dictator named Franco. Most of them just ended up being pissed of at me: they thought I was trying to convince them about something, but I wasn't, because I haven't even expressed my opinion about those things, just showed them that they weren't thinking by themselves, but just defending a label someone had set up for them.</p><p>The thing that would make them really incomfortable was actually that I had no label to defend. Are you left-wing or right-wing? --they'd ask. None. But that can't be possible! The flavor of strawberry, is it blue or green? Doesn't apply. How do you describe a circle in a one-dimension reality? You just can't. Because the categories used don't fit the reality being analyzed.</p><p>I've seen plenty of this in the Ruby community as well. At first I thought: well, this community is pretty different from regular university students --they're utterly smart people. They don't fall for labels. WRONG!</p><h3>Authority leaders and social debt</h3><p>In the Ruby community <strong>there are</strong> notorious authority leaders. Whenever <a href="https://twitter.com/dhh">DHH</a> says "A is X", the community splits in two: YESH and BULLSHIT. And it's not just DHH, but many other community leaders. People feel compelled to take part in one of the two factions, even when the debate itself might be irrelevant. I call this <strong>social debt</strong>.</p><p>Think of it as technical debt, but socially: you borrow the opinion of a faction or its counter-faction, and that makes you feel secure, but you might end up paying for your mistake later on (your mistake being not thinking about this yourself in the first place).</p><h2>Scarcity of critical thinking</h2><p>And that leads me to the second cancer: scarcity of critical thinking. It's true that we, as young members of the community, are condemned to reinvent the wheel over and over, to some extent. That's not exactly good, so to avoid this we may take one of these two paths: either learning from older developers' experience, or following trends blindly. Guess which way is easier, and sadly more common.</p><p>We seriously need to <strong>read a fucking ton more</strong> and take advantage of the expertise of older developers. We just can't live anymore with the old <em>threads suck, reactor pattern will save the world</em>, or <em>processes suck, threads will save the world</em>, or <em>multithreading is hard, processes will save the world</em>. Any of these might be partially true, but religiously sticking to one of those is just stupid. Try out things yourself, talk to other people, consider different use cases for every one of them: HELL, it's just such a simple pattern to compare technologies, it applies to almost everything! It just takes a little effort. And there's no shame in telling someone <strong>you don't know</strong> about a particular topic or <strong>you're not sure</strong> about what fits best a given problem. Stop sticking to trends blindly, seriously.</p><h2>The damn Pareto rule</h2><p>The third and last cancer I've been noticing in the Ruby community, and for the most part in Open Source, is the Pareto rule. 80% of the work is done by 20% of the people, while the other 80% of the people are either passively consuming technology or even worse: <strong>blaming their authors and maintainers</strong>, <strong>criticising their work</strong> or in some extreme cases <strong>laughing at it</strong>. If you feel you're part of the 20% of the people who do the work, put an end to this bullshit. Don't let people step over your work. And most importantly, if you feel you're part of the other 80%, you need to stop whining and start reading, learning, coding and doing something meaningful with your life.</p><h2>Conclusion</h2><p>I believe that these three cancers, if they keep growing, won't kill the Ruby community, but they surely will make it a dark, sad place to be in. We need to stop these, start respecting other people's work, learning from it, yet thinking for ourselves. We're supposed to build the future. We should know better.</p><p>We're motherfucking programmers, for fuck's sake.</p></div><hr /><div class="post"><span class="date">Apr 06, 2012</span>
+
+<header><a href="/2012/04/learning-with-terror-vm">Learning with Terror... VM</a></header><p>Hello! I promised to write about what I've been learning these past few months, so here I am. Today I'm going to write about TerrorVM. Dragons ahead! Not really. If you don't know the first thing about how Virtual Machines work, then you're at the same point I was a few months ago, so continue reading.</p><h2>How did I get interested in this?</h2><p>I started playing with language design last year, mostly thanks to <a href="http://rubini.us">Rubinius</a> being such an easy platform to target. I implemented a <a href="https://github.com/txus/brainfuck">Brainfuck</a> compiler and eventually I started building the <a href="https://github.com/txus/noscript">Noscript</a> programming language, an object-oriented, class-less programming language running on the Rubinius VM.</p><p>For the record, building a programming language is certainly one of the most rewarding experiences I've had in the programming world. It's challenging, creative, and extremely fun.</p><p>Eventually I wondered: targeting a Virtual Machine is fun, but how do Virtual Machines work? What's all the low-level, dirty work they do underneath all those colourful balloons of joy? So I decided to try and build something simple, just to learn the basics. As a little detour, whenever I want to learn something new in programming I follow these steps:</p><h3>My way of learning new things</h3>
+<ol>
+  <li>Read about the problem, but just superficially. Imagine how it could work  internally, even if you have no idea.</li>
+  <li>Try and build an extremely simple version of that yourself, intuitively.</li>
+  <li>Whenever you encounter a design or conception problem, go read some more or  ask someone who knows their shit.</li>
+  <li>Shape your prototype accordingly and try to expand it with new features.</li>
+  <li>Go to step 3.</li>
+</ol><p>It works, trust me.</p><h2>TerrorVM</h2><p>The first problem I encountered: I didn't know C. So I went and read Zed Shaw's <a href="http://c.learncodethehardway.org/">Learn C the Hard Way</a> book. I learned the basics and moved on!</p><p>So I opened a text editor and started coding a simple C program with a while loop and a switch statement. No memory management, no real objects (just integers), no local variables, no literal pool, just basic arithmetic operations on a simple stack data structure.</p><p>At first it was stack-based, but then I took the Lua Virtual Machine (a register-based virtual machine) as a reference and start reading about it. I read <a href="http://www.lua.org/doc/jucs05.pdf">The Implementation of Lua 5</a>, and from there I just read <a href="http://www.lua.org/source/5.2/">its source code</a> directly to understand what was going on. The fun thing is: I understood nothing at first, but progressively, and by repeatedly bothering <a href="http://twitter.com/jtregunna">Jeremy Tregunna</a> (thanks Jeremy!!) and reading about the things he'd tell me, I was able to understand a bit more every time I read it.</p><p><a href="https://github.com/txus/terrorvm">TerrorVM</a> had been born. Technically it is a register-based, (naively) garbage-collected, stackless Virtual Machine aimed at running dynamic languages compiled down to its own (relatively compact) bytecode format.</p><h2>A proof-of-concept Ruby-to-Terror compiler</h2><p>Once I had basic functionality working, I wondered: but I want to see a real language running on my VM! So I wrote a simple Terror compiler: a program written Rubinius that compiles a subset of Ruby to my bytecode format. Its design is heavily inspired by the Rubinius compiler itself. It's easy to use!</p><p>It basically takes this:</p>
+<pre><code class="codehilite"><span class="n">a</span> <span class="o">=</span> <span class="mi">123</span>
+<span class="n">b</span> <span class="o">=</span> <span class="kp">false</span>
+<span class="k">if</span> <span class="n">b</span>
+  <span class="nb">print</span> <span class="s1">'Goodbye world!'</span>
+<span class="k">else</span>
+  <span class="nb">print</span> <span class="s2">"Hello world!"</span>
+<span class="k">end</span>
+</code></pre><p>And outputs this:</p>
+<pre><code class="codehilite">_main
+:10:2:4:17
+123
+"print
+"Goodbye world!
+"Hello world!
+0x1000000
+0x51000000
+0x9010000
+0x51010100
+0x50020100
+0x21060200
+0x30030000
+0x2040100
+0x2050200
+0x80030405
+0x20050000
+0x30060000
+0x2070100
+0x2080300
+0x80060708
+0x8090000
+0x90090000
+</code></pre><p>Then you can put this into a <code>.tvm</code> file and run it with TerrorVM! (Spoiler alert: it will print <code>Hello world!</code> to the standard output). Read the <a href="https://github.com/txus/terrorvm">Readme in the Github repo</a> to learn more about how to try it yourself.</p><h2>Future plans</h2><p>My idea is that TerrorVM should be able to run on both desktop computers and Android devices, since it would be really cool to have dynamic languages on Android.</p><p>I'd also like to have a decent, generational Garbage Collector, but blah blah now I'm just being boring. Whatever comes to my mind as I learn further!</p><p>Anyway, take a look at <a href="https://github.com/txus/terrorvm">the Github repo</a> if you like!</p><h2>Conclusion</h2><p>As you can see, nearly every topic you'd like to learn about is approachable if you take it easy, aren't afraid of it, and just do it. TerrorVM might certainly not be the Virtual Machine of tomorrow, but what I'm learning while building it -- that I'll keep forever.</p></div><hr /><div class="post"><span class="date">Feb 27, 2012</span>
+
+<header><a href="/2012/02/mutation-testing-with-mutant">Mutation testing with Mutant</a></header><p>Hi everyone! I know it has been a while since my last post (more than half a year). I've spent this time learning a ton of interesting stuff, and done most of my writing on the <a href="http://blog.codegram.com">Codegram blog</a>. I'm preparing a series of blogposts about what I've learned these past few months, so expect a bunch of updates to my RSS feed :) Anyway, today I'm going to talk about <a href="http://github.com/txus/mutant">Mutant</a>.</p><h2>What is Mutant?</h2><p>As stated in the project description:</p>
+<blockquote><p>Mutant is a mutation tester. It modifies your code and runs your tests to make sure they fail. The idea is that if code can be changed and your tests don't notice, either that code isn't being covered or it doesn't do anything.</p>
+</blockquote><p>The first time I read about mutation testing, it was in the <a href="http://pragprog.com/book/achbd/the-rspec-book">RSpec book</a>. It talked about <a href="http://github.com/seattlerb/heckle">Heckle</a>, a mutation testing library that runs on Ruby 1.8.x.</p><p>Last year <a href="http://twitter.com/justinko">Justin Ko</a> (from the <a href="http://github.com/rspec">RSpec</a> core team) started a rewrite running on <a href="http://rubini.us">Rubinius</a>: Mutant was born!</p><p>A few weeks ago Justin offered me to partner up for the project, and since he's got a lot of work to do on the upcoming RSpec 3, I eventually <a href="http://github.com/txus/mutant">took over Mutant</a> to bring it to 1.0!</p><p>In fact today I released 0.1.1, which is pretty much usable, and I encourage you to try it in your projects! It works in rubinius-head, either 1.8 or 1.9 mode, and for now it supports only the RSpec testing framework (although support for MiniTest and other frameworks will be very soon in Mutant).</p><p>Anyway, let's see a practical example about how to use it.</p><h2>Mutation testing</h2><p>Mutation testing consists in programmatically modifying the code of a method and asserting that the tests consequently fail.</p><p>First of all, let's install Rubinius head and the Mutant gem. To do it with RVM, just type on the terminal:</p>
+<pre><code class="codehilite">$ rvm install rbx-head
+$ rvm use rbx-head
+$ gem install mutant
+</code></pre><p>Now imagine you had this Worker class in a file and another file with its spec:</p>
+<pre><code class="codehilite"><span class="c1"># worker.rb</span>
+<span class="k">class</span> <span class="nc">Worker</span>
+  <span class="kp">attr_reader</span> <span class="ss">:job</span>
+
+  <span class="k">def</span> <span class="nf">get_job</span>
+    <span class="vi">@job</span> <span class="o">=</span> <span class="ss">:some_job</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># worker_spec.rb</span>
+<span class="vg">$:</span> <span class="o">&lt;&lt;</span> <span class="s1">'.'</span> <span class="c1"># Hack for 1.9 mode</span>
+<span class="nb">require</span> <span class="s1">'rspec/autorun'</span>
+<span class="nb">require</span> <span class="s1">'worker'</span>
+
+<span class="n">describe</span> <span class="no">Worker</span> <span class="k">do</span>
+  <span class="n">before</span> <span class="k">do</span>
+    <span class="vi">@worker</span> <span class="o">=</span> <span class="no">Worker</span><span class="o">.</span><span class="n">new</span>
+  <span class="k">end</span>
+
+  <span class="n">it</span> <span class="s1">'is free by default'</span> <span class="k">do</span>
+    <span class="vi">@worker</span><span class="o">.</span><span class="n">job</span><span class="o">.</span><span class="n">should</span> <span class="n">be_nil</span>
+  <span class="k">end</span>
+
+  <span class="n">context</span> <span class="s1">'when it has a job'</span> <span class="k">do</span>
+    <span class="n">it</span> <span class="s1">'should have :some_job'</span> <span class="k">do</span>
+      <span class="vi">@worker</span><span class="o">.</span><span class="n">get_job</span>
+      <span class="vi">@worker</span><span class="o">.</span><span class="n">job</span><span class="o">.</span><span class="n">should_not</span> <span class="n">be_nil</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p>Let's run Mutant now:</p>
+<pre><code class="codehilite">$ mutate "Worker#get_job" worker_spec.rb
+</code></pre><p>It will first run the tests, making sure they pass, <strong>then</strong> mutate the Worker's <code>#get_job</code> method, and pass the tests again. In this case, the method is simple, so it performs a single mutation, as we can see in the output:</p>
+<pre><code class="codehilite">Mutating line 6
+  @job = :some_job &gt;&gt;&gt; @job = :BcNKAyqRSfzMPGeiLmGekgAIxYua
+</code></pre><p>And the test still passes after that, because it isn't checking for <code>@job</code> being specifically <code>:some_job</code>, but just any truthy value. This means Mutant will fail, because your test isn't asserting what it should.</p><p>If we changed the test to check that <code>@worker.job.should eq(:some_job)</code>, then Mutant wouldn't complain and life would be good :)</p><h2>How can you help out?</h2><p>Now that Mutant 0.1.1 is out, the best way to help out is to try and run it on your projects. For now those should be projects using RSpec, but soon I'll implement support for other frameworks (or maybe you will!). So you know what to do:</p>
+<pre><code class="codehilite">$ rvm install rbx-head
+$ rvm use rbx-head
+$ gem install mutant
+</code></pre><p>And MUTATE ALL OF THE METHODS!</p><p>If you want to contribute with code or even just suggestions, I suggest you to check out the <a href="https://trello.com/board/mutant/4f452510101d860b203b542d">development roadmap</a>. It is open to comments and votes, so you can see what's going on and participate.</p><p>I hope you guys enjoyed reading this post. See you on Github!</p></div><hr /><div class="post"><span class="date">Jun 18, 2011</span>
+
+<header><a href="/2011/06/rexpl-interactive-bytecode-console-for-rubinius">Rexpl - an interactive bytecode console for Rubinius</a></header><h2>A bit of a background</h2><p>Since the beginning of the year I've been gradually becoming more and more interested in language design. Last December I <a href="http://github.com/txus/brainfuck">implemented Brainfuck</a>, the most trivial Turing-complete programming language, in pure Ruby.</p><p>In January I discovered <a href="http://github.com/kschiess/parslet">parslet</a>, a really smart piece of software written by <a href="http://twitter.com/kasparschiess">Kaspar Schiess</a>). Having tried a <a href="https://github.com/nathansobo/treetop">different approach</a> at generating PEG parsers before, I found parslet quite smarter and friendlier to use, so I decided that the best way of giving it a try would be rewriting my Brainfuck implementation with it.</p><p>Since I liked it very much, in February I started <a href="http://github.com/txus/schemer">an attempt</a> to implement the <a href="http://en.wikipedia.org/wiki/Scheme_(programming_language)">Scheme programming language</a> in Ruby, using what I already knew about parslet and trying to figure out the rest (not without the help of this <a href="http://mitpress.mit.edu/sicp">awesome book</a> and a refreshing trip to Paris). Although it's far from finished, it turned out to be an enlightening experience and it just brought my interest on language design further.</p><h2>Rubinius</h2><p>A few months earlier I had become aware of <a href="http://rubini.us">Rubinius</a>, which up until that point was nothing more than a strange word that came up whenever I typed <code>rvm list</code> <code>known</code> in the terminal. It turned out to be an amazing project to implement Ruby... in Ruby itself! Taking advantage of modern research about language design, they are working hard to make it both faster and more user-friendly than the most widely used implementation, MRI.</p><p>That was last October, when I attended to <a href="http://rubyandrails.eu">Ruby And Rails Conf 2010</a>, a really awesome Ruby conference held in Amsterdam, and there were not only one, but two talks about Rubinius. The first one was given by <a href="http://twitter.com/dbussink">Dirkjan Bussink</a> about the Rubinius VM itself. The other was given by <a href="http://twitter.com/bakkdoor">Christopher Bertels</a>, and he talked about <a href="http://www.fancy-lang.org">Fancy</a>, his own programming language, which was bootstrapped on the Rubinius VM.</p><p>I found those two talks really inspiring, and in May I rewrote (again) my Brainfuck implementation targeting the Rubinius VM. It was a lot of fun! I also freaked out a bit when I realized that every programming language, well, everything in computing, could be represented by a stack and a memory heap. Man! My educational background is in Political Science, where everything is sooo high level :) So that was kind of shocking to me.</p><h2>Pen and paper</h2><p>While tinkering with the Rubinius VM, I found it useful to have pen and paper around whenever I was coding. Given a set of VM instructions, I'd go instruction after instruction, drawing what the stack should look like at each step. I'd freak out at net stack underflow errors, try to follow along the instructions that were being executed, keeping track of the stack size and spotting that extra (or missing) <code>pop</code>. As a last resort, I'd also go crying in the #rubinius IRC channel on Freenode :)</p><p>Once, in that very channel, I asked if there was a way to print the stack after a particular instruction. Since there wasn't, I started reading the Rubinius source code and came up with a short script that seemed to do exactly that — except that it didn't work at all, so I abandoned the idea, drown in sadness.</p><p>Then <a href="http://twitter.com/jtregunna">Jeremy Tregunna</a>, the guy behind <a href="http://github.com/jeremytregunna/metis">Metis</a> (an implementation of <a href="http://www.iolanguage.com">IO</a> targeting the Rubinius VM), tweeted that he tried to do the same, and that he wanted to bring it further, like an IRB for bytecode. I thought this was even better than what I had in mind, so I started hacking on it and came up with <strong>rexpl</strong>, a REPL for Rubinius bytecode.</p><h2>Installing and playing with rexpl</h2><p>Rexpl is built to be a fun tool to use when learning how to use Rubinius bytecode instructions, for example when bootstraping a new language targeting the Rubinius VM for the first time.</p><p>Its main feature is <strong>stack introspection</strong>, which means you can inspect what the stack looks like after each step of your instruction set.</p><p>After you have installed Rubinius (you can find how to do so in their website), open a terminal and type:</p>
+<pre><code class="codehilite">$ gem install rexpl
+$ rexpl
+</code></pre><p>Now you should see a welcome banner and an IRB-like prompt, and you're good to go! Just start typing some <a href="http://rubini.us/doc/en/virtual-machine/instructions/">VM instructions</a> and see what happens.</p><p>There are three extra commands to take advantage of the stack introspection:</p>
+<ul>
+  <li><code>list</code> lists the instruction set of the current program.</li>
+  <li><code>reset</code> empties the instruction set and starts a new program.</li>
+  <li><code>draw</code> prints a visual representation of the stack after each instruction of your program.</li>
+</ul><p>Here's a screenshot of what it looks like:</p><p><img _="_" alt="rexpl in action" src="https://camo.githubusercontent.com/b963d444a8ff8a05220d47416506c1a2d059b83a/687474703a2f2f646c2e64726f70626f782e636f6d2f752f323537313539342f726578706c2e706e67" /></p><h2>Contribute!</h2><p>The first version of Rexpl was just released yesterday, so it should contain a number of unforeseen use cases and unexpected behaviors.</p><p>If you have never played with the Rubinius VM, now it's time to start! You can tinker around, make yourself comfortble and who knows, maybe you're the author of the next mainstream programming language!</p><p>And if you already are a language master and dream in bytecode, you can surely find a lot of edge cases where <strong>rexpl</strong> would need more work — which I will be surely glad to do.</p><p>Make sure to check out <a href="http://github.com/txus/rexpl">the Github repo</a> and create a bunch of issues! I love them :)</p></div><hr /><div class="post"><span class="date">Jan 06, 2011</span>
+
+<header><a href="/2011/01/micetrap-catch-evil-hackers-on-the-fly">Micetrap - Catch evil hackers on the fly!</a></header><p>What if you could set traps for hackers and script kiddies trying to scan ports on your computer?</p><p>As any valuable hacker knows, better information leads to better attacks. Therefore, the first thing any potential attacker will do is collect information about her victim: your machine. This can be performed thanks to some really impressive port scanning tools, probably being <a href="http://www.nmap.org">Nmap</a> the most popular among them.</p><h2>Ok, but what is micetrap?</h2><p><a href="http://github.com/txus/micetrap">Micetrap</a> opens a server on either a given or random port, emulating fake vulnerable services. Port scanners such as Nmap, when fingerprinting ports to discover service names and versions, will get apparently legitimate responses from common services such as FTP, HTTP or MySQL servers, therefore misleading potential attackers with false information.</p><p>Depending on the operating system you are using, micetrap will try its best to <em>look feasible</em> by choosing the appropriate fake services and versions to emulate. Whenever possible, micetrap will provide a bit outdated versions which are more likely to be vulnerable, and thus making the attacker focus on those ports. While the attacker tries to exploit these ports, she is essentially sending certain packets -- which get properly captured and logged by micetrap. This information might be useful to discover what kind of attacks are being tried against your machine, therefore giving you time and the opportunity to defend appropriately.</p><p>Running micetrap with sudo will allow it to use default, unsuspicious ports, which may give you advantage at tricking a smart attacker.</p><h2>An example</h2><p>First we need to install micetrap as a gem:</p>
+<pre><code class="codehilite">$ gem install micetrap
+</code></pre><p>...or, if you want to be able to use it with sudo:</p>
+<pre><code class="codehilite">$ sudo gem install micetrap
+</code></pre><p>Micetrap currently runs on Ruby versions 1.8.7 and 1.9.2.</p><p>Then we fire up the server with some fake service, such as an ftp server:</p>
+<pre><code class="codehilite">$ micetrap ftp --port 8765
+</code></pre><p>If everything is ok, you will see something like this:</p>
+<pre><code class="codehilite">(some timestamp) ::: Ftp trap listening on ::ffff:0.0.0.0:8765
+</code></pre><p>TL;DR: Most port scanners such as <em>nmap</em> have some kind of fingerprinting capabilities. This means that, in order to discover which services and versions run behind a specific port, they send special packets or <em>probes</em> which make different services and versions react differently. By capturing the response and matching it against a database, most of the time they can reliably determine what service and version is running behind that port.</p><p>Port scanners usually start by sending a blank probe, since many servers respond with a welcome banner telling interesting stuff about them. Micetrap only responds to those early blank probes. Let's try to port-scan this fake ftp service with nmap fingerprinting:</p>
+<pre><code class="codehilite">$ nmap 127.0.0.1 -p 8765 -A
+</code></pre><p>We are scanning localhost, port 8765, and -A means service version detection and OS guessing. After a while, in our micetrap server terminal we see:</p>
+<pre><code class="codehilite">(timestamp) Recorded a probe coming from ::ffff:127.0.0.1:51082
+containing the following: (empty line)
+
+(timestamp) ::: Responded misleadingly: let's drive those
+hackers nuts! :::
+</code></pre><p>These lines get logged inside a .log file within the current directory. And in the nmap terminal:</p>
+<pre><code class="codehilite">Starting Nmap 5.35DC1 ( http://nmap.org ) at (timestamp)
+Nmap scan report for localhost (127.0.0.1)
+Host is up (0.00017s latency).
+PORT     STATE SERVICE VERSION
+8765/tcp open  ftp     Mac OS X Server ftpd
+</code></pre><p>The faked service/version is random (you can start an ftp server which looks like lukemftpd, Mac OS X server ftpd or PureFTPd for example), but it is consistent within the same server, so that every scan reports the same service and version.</p><h2>U mad? Evil hackers</h2><p>Probably :)</p><h2>Available services</h2><p>For now there are a bunch of ftp, http, torrent, mysql and samba services, mostly Mac-ish. But you can always...</p><h2>Contribute!</h2><p>If you want to contribute with more services and versions to empower micetrap and be a hacking superhero, you shall follow these steps:</p>
+<ul>
+  <li>Fork the project <a href="http://github.com/txus/micetrap">in the Github repo</a>.</li>
+  <li>Install <a href="http://www.nmap.org">nmap</a> and look for a file called nmap-service-probes in your system.  This file contains regexes used to match responses from scanned services.</li>
+  <li>You only have to devise a string which fits in one of this regexes and then  add it in the corresponding service file (in lib/micetrap/services/ftp.rb for  example if it's an ftp server).</li>
+  <li>Commit, do not mess with rakefile, version, or history.  If you want to have your own version, that is fine but bump version  in a commit by itself I can ignore when I pull.</li>
+  <li>Send me a pull request. Bonus points for topic branches.</li>
+  <li>Profit!</li>
+</ul></div><hr /><div class="post"><span class="date">Dec 05, 2010</span>
+
+<header><a href="/2010/12/hijacker-0-2">Hijacker 0.2</a></header><p>After some busy weeks I finally found some time to do a major rewrite of Hijacker, fixing some nasty bugs with 1.8.7, cleaning and refactoring the code and making it more robust in a number of ways.</p><p>The main enhancement is that now you can use your own handlers from your project and home directories! It's easy peasy. You just write a ruby file defining your handler, put in one of these paths:</p>
+<pre><code class="codehilite">./.hijacker/path/to/my/file.rb
+~/.hijacker/path/to/my/file.rb
+</code></pre><p>...and it will be automatically loaded by hijacker, allowing you to start the server with your handler like this:</p>
+<pre><code class="codehilite">$ hijacker my_handler --my-option --bla-bla
+</code></pre><p>If you think your handler might be useful to others, please send me a pull request in <a href="http://github.com/txus/hijacker">the Github repo</a>!</p><h2>Other enhancements</h2><p>There are some minor enhancements as well. For example, now blocks passed to hijacked objects are reported as arguments. So:</p>
+<pre><code class="codehilite"><span class="no">Hijacker</span><span class="o">.</span><span class="n">spy</span><span class="p">(</span><span class="n">my_object</span><span class="p">)</span>
+
+<span class="n">my_object</span><span class="o">.</span><span class="n">my_method</span><span class="p">(</span><span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">)</span> <span class="k">do</span>
+  <span class="c1"># something</span>
+<span class="k">end</span>
+</code></pre><p>Will be reported as calling :my_method with arg1, arg2 and a Proc.</p><p>If the method raised something, it will be reported as well.</p><h2>Contribute!</h2><p>Now being the code cleaner and more organized, feel free to contribute if you find something missing (or if you know really well Rubinius and can easily figure out the metaprogramming issues preventing hijacker from working with it!)</p><p>Or maybe just file an issue :)</p></div><hr /><div class="post"><span class="date">Nov 21, 2010</span>
+
+<header><a href="/2010/11/introducing-hijacker-spy-on-your-ruby-objects">Introducing Hijacker - spy on your ruby objects!</a></header><p>Ok, so yesterday I woke up with two things in mind: doing something with DRb, and doing something with metaprogramming (just for the lulz). So I first implemented a little spy pattern to spy on objects, classes and their instances, mixed it with DRb, and came up with the hijacker idea.</p><p>You can check out <strong>hijacker</strong>'s source code in <a href="http://github.com/txus/hijacker">the Github repo</a>.</p><p>So, let's get started. Hijacker is two things indeed: a server and a spy.</p><h2>Hijacker: the spy</h2><p>On the <strong>client</strong> side (your ruby code), hijacker is a utility that lets you <strong>spy</strong> on any object or class. (Spying on a class also implies spying on its instances, unless you override this behavior.) The first step is telling hijacker <strong>where</strong> to send its spy reports. This can be done at three levels: either globally...</p>
+<pre><code class="codehilite"><span class="no">Hijacker</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span>
+
+  <span class="c1"># Sets the DRb uri to which the reports are sent.</span>
+  <span class="c1"># (Ideally, where your hijacker server listens)</span>
+  <span class="n">uri</span> <span class="s1">'druby://localhost:8787'</span>
+<span class="k">end</span>
+</code></pre><p>...or specifying a different uri for a particular spied object...</p>
+<pre><code class="codehilite"><span class="no">Hijacker</span><span class="o">.</span><span class="n">spy</span><span class="p">(</span><span class="n">my_object</span><span class="p">,</span>
+             <span class="ss">:uri</span> <span class="o">=&gt;</span> <span class="s1">'druby://localhost:9999'</span><span class="p">)</span>
+</code></pre><p>...or specifying an uri for a particular spied object WITHIN a block:</p>
+<pre><code class="codehilite"><span class="no">Hijacker</span><span class="o">.</span><span class="n">spying</span><span class="p">(</span><span class="n">my_object</span><span class="p">,</span>
+                <span class="ss">:uri</span> <span class="o">=&gt;</span> <span class="s1">'druby://localhost:8787'</span><span class="p">)</span> <span class="k">do</span>
+  <span class="c1"># do something with my_object</span>
+<span class="k">end</span>
+</code></pre><p>What I mean for <strong>spying</strong> is registering every method call on the spied object, and reporting the <strong>method name</strong>, the <strong>arguments</strong> and the <strong>return value</strong>.</p><p>Every time any activity on a spied object is registered, it is immediately sent to the specified URI (may it be the global one, or specified by any other means). There, on that URI, a patient hijacker server is waiting...</p><h2>Hijacker: the server</h2><p>The hijacker server is fired up serving a particular handler, which will receive those spy reports and handle them somehow. For now the only handler implemented is Logger, so we start hijacker like this:</p>
+<pre><code class="codehilite">$ hijacker logger
+</code></pre><p>And the server is started with the Logger handler! It will tell you the DRb uri you have to connect to from your ruby code.</p><p>The Logger handler receives the report and shows it in a colourful way, just like a nice logger is expected to.</p><h2>Creative uses for the Logger handler</h2><p>Ok, Logger is a very simple handler, but combined with the power of DRb and Hijacker, it can be quite useful! Imagine you have two sensitive classes in some ruby code, let's call them <strong>PaymentGateway</strong> and <strong>PlanUpgrader</strong>. To avoid clutter in our logging server output we could use hijacker like this:</p>
+<pre><code class="codehilite"><span class="c1"># We are only spying on instances of PaymentGateway and</span>
+<span class="c1"># sending their activity to druby://localhost:2222</span>
+<span class="no">Hijacker</span><span class="o">.</span><span class="n">spy</span><span class="p">(</span><span class="no">PaymentGateway</span><span class="p">,</span>
+             <span class="ss">:only</span> <span class="o">=&gt;</span> <span class="ss">:instance_methods</span><span class="p">,</span>
+             <span class="ss">:uri</span> <span class="o">=&gt;</span> <span class="s1">'druby://localhost:2222'</span><span class="p">)</span>
+
+<span class="c1"># Let's spy on PlanUpgrader's class methods, which upgrade</span>
+<span class="c1"># users' paid plans, and send the activity to a different</span>
+<span class="c1"># hijacker logging server in druby://localhost:3333</span>
+<span class="no">Hijacker</span><span class="o">.</span><span class="n">spy</span><span class="p">(</span><span class="no">PlanUpgrader</span><span class="p">,</span>
+             <span class="ss">:only</span> <span class="o">=&gt;</span> <span class="ss">:singleton_methods</span><span class="p">,</span>
+             <span class="ss">:uri</span> <span class="o">=&gt;</span> <span class="s1">'druby://localhost:3333'</span><span class="p">)</span>
+
+<span class="c1"># If we had a veeery sensitive part of code where the user</span>
+<span class="c1"># plan is sent some methods, we could spy *only* that part</span>
+<span class="c1"># like this: (in this case the server uri is the global one)</span>
+<span class="no">Hijacker</span><span class="o">.</span><span class="n">spying</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">plan</span><span class="p">)</span> <span class="k">do</span>
+  <span class="n">user</span><span class="o">.</span><span class="n">plan</span><span class="o">.</span><span class="n">change_with</span><span class="p">(</span><span class="n">untrusted_args</span><span class="p">)</span>
+  <span class="c1"># do something else</span>
+<span class="k">end</span>
+</code></pre><h2>Extending Hijacker with your own handlers!</h2><p>What if you wanted a handler that calculates the average number of arguments sent to methods of a class? Or maybe keeping track of the mostly used object types as arguments, to see if you could replace them with more lightweight objects?</p><p>It is really easy to write your own handlers. Inside hijacker code, handlers live here:</p>
+<pre><code class="codehilite">lib/hijacker/handlers/your_handler.rb
+</code></pre><p>They are autoloaded and automatically registered, so all you have to do is write them like this:</p>
+<pre><code class="codehilite"><span class="k">module</span> <span class="nn">Hijacker</span>
+  <span class="c1"># You only have to subclass Hijacker::Handler...</span>
+  <span class="k">class</span> <span class="nc">MyHandler</span> <span class="o">&lt;</span> <span class="no">Handler</span>
+
+    <span class="c1"># You must implement a class method named cli_options</span>
+    <span class="c1"># which must return a Trollop-friendly Proc, for</span>
+    <span class="c1"># command-line options parsing.</span>
+    <span class="c1">#</span>
+    <span class="c1"># These options can be accessed from within the</span>
+    <span class="c1"># #handlemethod by calling the `opts` method.</span>
+    <span class="c1">#</span>
+    <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">cli_options</span>
+      <span class="no">Proc</span><span class="o">.</span><span class="n">new</span> <span class="p">{</span>
+        <span class="n">opt</span> <span class="ss">:without_foo</span><span class="p">,</span>
+            <span class="s2">"Don't use foo to handle the method name"</span>
+        <span class="n">opt</span> <span class="ss">:using_bar</span><span class="p">,</span>
+            <span class="s2">"Use bar as much as you can"</span>
+      <span class="p">}</span>
+    <span class="k">end</span>
+
+    <span class="c1"># This is the most important method. This is what</span>
+    <span class="c1"># is called every time a method call is performed</span>
+    <span class="c1"># on a hijacked object. The received params look</span>
+    <span class="c1"># like this:</span>
+    <span class="c1">#</span>
+    <span class="c1">#   method    :foo</span>
+    <span class="c1">#</span>
+    <span class="c1">#   args      [{:inspect =&gt; '3',</span>
+    <span class="c1">#               :class =&gt; 'Fixnum'},</span>
+    <span class="c1">#              {:inspect =&gt; '"string"',</span>
+    <span class="c1">#               :class =&gt; 'String'}]</span>
+    <span class="c1">#</span>
+    <span class="c1">#   retval    [{:inspect =&gt; ':bar',</span>
+    <span class="c1">#               :class =&gt; 'Symbol'}]</span>
+    <span class="c1">#</span>
+    <span class="c1">#   object    [{:inspect =&gt; '#&lt;MyClass:0x003457&gt;',</span>
+    <span class="c1">#               :class =&gt; 'MyClass'}]</span>
+    <span class="c1">#</span>
+    <span class="k">def</span> <span class="nf">handle</span><span class="p">(</span><span class="nb">method</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">retval</span><span class="p">,</span> <span class="n">object</span><span class="p">)</span>
+      <span class="c1"># Do what you want with these!</span>
+    <span class="k">end</span>
+
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p>Try to think of creative uses of hijacker, write your own handlers and send them to me ZOMG I CAN HAZ MOAR HENDLARZ :3</p><p>Feel free to send me feedback on what do you think!</p></div><hr /><div class="post"><span class="date">Oct 31, 2010</span>
+
+<header><a href="/2010/10/stendhal-0-1-2-released">Stendhal 0.1.2 released</a></header><p>A brief post about <a href="http://github.com/txus/stendhal">stendhal</a> latest updates! My little code kata is growing slowly :)</p><p>Admittedly, the way in which I develop this gem is by forcing myself not to write anything I don't need right now. Last version (0.1.0) introduced nested example groups, which forced me to rewrite the way examples were ran. I believe this made me rethink some stuff and come up with better code.</p><p>By 0.1.0, the only way to "assert" something inside an example was to primitively do it like this:</p>
+<pre><code class="codehilite"><span class="n">describe</span> <span class="s2">"something"</span> <span class="k">do</span>
+  <span class="n">it</span> <span class="s2">"does something"</span> <span class="k">do</span>
+    <span class="n">assert</span><span class="p">(</span><span class="mi">3</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p>This little method was implemented in an Assertions module which I no longer use: this new release introduces RSpec-like expectations and matchers. This means you can do this kind of things now:</p>
+<pre><code class="codehilite"><span class="n">describe</span> <span class="s2">"something"</span> <span class="k">do</span>
+  <span class="n">it</span> <span class="s2">"does something"</span> <span class="k">do</span>
+    <span class="p">(</span><span class="mi">3</span><span class="o">+</span><span class="mi">4</span><span class="p">)</span><span class="o">.</span><span class="n">must</span> <span class="n">eq</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+  <span class="k">end</span>
+  <span class="n">it</span> <span class="s2">"does something else"</span> <span class="k">do</span>
+    <span class="s2">"string"</span><span class="o">.</span><span class="n">must_not</span> <span class="n">be_frozen</span>
+  <span class="k">end</span>
+  <span class="n">it</span> <span class="s2">"does something else"</span> <span class="k">do</span>
+    <span class="s2">"string"</span><span class="o">.</span><span class="n">must</span> <span class="n">be_a</span><span class="p">(</span><span class="nb">String</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p>For now there are a limited number of matchers, of course.</p><h3>Where is this going then? What will 1.0 have?</h3><p>My idea is to bring <strong>dogfooding</strong> to stendhal by 1.0: all stendhal code should be tested with stendhal itself, rather than with RSpec.</p><p>This means that hopefully these features have to available by then:</p>
+<ul>
+  <li>Test doubles</li>
+  <li>Mocks</li>
+  <li>Some more matchers</li>
+  <li>A decent reporter with multiple formatters</li>
+</ul><p>And it would be nice to have these too:</p>
+<ul>
+  <li>Support for 3rd party mocking libraries (mocha, rr, flexmock, rspec-mocks)</li>
+  <li>Support for using stendhal with rspec-expectations</li>
+</ul><p>Wouldn't that be great? Check the <a href="http://github.com/txus/stendhal">Github source</a> and report issues if you find them! This will speed up the development process a lot :)</p></div><hr /><div class="post"><span class="date">Oct 27, 2010</span>
+
+<header><a href="/2010/10/stay-fit-with-code-katas">Stay fit with code katas</a></header><p>Hello! This is my first post. I'm writing this because I just started a personal kata project to improve my ruby: it's called <strong>stendhal</strong>.</p><p>It's a small test framework which tries to mimic the RSpec DSL, implemented from scratch with my narrow understanding of <em>metaprogrammizing</em>. w00t!</p><h2>Why does the world need another test framework?</h2><p>It doesn't. But since I recently got very interested in contributing to RSpec, I thought it would be enlightening to try and build something from scratch, so that I can get familiar with problems and patterns I would not use otherwise simply because I don't know them.</p><p>You can check the source at <a href="http://github.com/txus/stendhal">github.com/txus/stendhal</a> and criticize as you wish. In the end, it's all about learning!</p></div></div></div><script type="text/javascript">var _gaq = _gaq || [];
+            _gaq.push(['_setAccount', 'UA-19362711-1']);
+            _gaq.push(['_trackPageview']);
+
+            (function() {
+            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+            })();</script></body></html>

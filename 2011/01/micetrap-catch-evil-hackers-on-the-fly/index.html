@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+
+<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>the programmer language,</title><link rel="stylesheet" href="/3a91ca427050/styles.css" /></head><body><div class="container"><h1><a href="/">the programmer language,</a></h1><div class="body"><div class="post"><span class="date">Jan 06, 2011</span>
+
+<header><a href="/2011/01/micetrap-catch-evil-hackers-on-the-fly">Micetrap - Catch evil hackers on the fly!</a></header><p>What if you could set traps for hackers and script kiddies trying to scan ports on your computer?</p><p>As any valuable hacker knows, better information leads to better attacks. Therefore, the first thing any potential attacker will do is collect information about her victim: your machine. This can be performed thanks to some really impressive port scanning tools, probably being <a href="http://www.nmap.org">Nmap</a> the most popular among them.</p><h2>Ok, but what is micetrap?</h2><p><a href="http://github.com/txus/micetrap">Micetrap</a> opens a server on either a given or random port, emulating fake vulnerable services. Port scanners such as Nmap, when fingerprinting ports to discover service names and versions, will get apparently legitimate responses from common services such as FTP, HTTP or MySQL servers, therefore misleading potential attackers with false information.</p><p>Depending on the operating system you are using, micetrap will try its best to <em>look feasible</em> by choosing the appropriate fake services and versions to emulate. Whenever possible, micetrap will provide a bit outdated versions which are more likely to be vulnerable, and thus making the attacker focus on those ports. While the attacker tries to exploit these ports, she is essentially sending certain packets -- which get properly captured and logged by micetrap. This information might be useful to discover what kind of attacks are being tried against your machine, therefore giving you time and the opportunity to defend appropriately.</p><p>Running micetrap with sudo will allow it to use default, unsuspicious ports, which may give you advantage at tricking a smart attacker.</p><h2>An example</h2><p>First we need to install micetrap as a gem:</p>
+<pre><code class="codehilite">$ gem install micetrap
+</code></pre><p>...or, if you want to be able to use it with sudo:</p>
+<pre><code class="codehilite">$ sudo gem install micetrap
+</code></pre><p>Micetrap currently runs on Ruby versions 1.8.7 and 1.9.2.</p><p>Then we fire up the server with some fake service, such as an ftp server:</p>
+<pre><code class="codehilite">$ micetrap ftp --port 8765
+</code></pre><p>If everything is ok, you will see something like this:</p>
+<pre><code class="codehilite">(some timestamp) ::: Ftp trap listening on ::ffff:0.0.0.0:8765
+</code></pre><p>TL;DR: Most port scanners such as <em>nmap</em> have some kind of fingerprinting capabilities. This means that, in order to discover which services and versions run behind a specific port, they send special packets or <em>probes</em> which make different services and versions react differently. By capturing the response and matching it against a database, most of the time they can reliably determine what service and version is running behind that port.</p><p>Port scanners usually start by sending a blank probe, since many servers respond with a welcome banner telling interesting stuff about them. Micetrap only responds to those early blank probes. Let's try to port-scan this fake ftp service with nmap fingerprinting:</p>
+<pre><code class="codehilite">$ nmap 127.0.0.1 -p 8765 -A
+</code></pre><p>We are scanning localhost, port 8765, and -A means service version detection and OS guessing. After a while, in our micetrap server terminal we see:</p>
+<pre><code class="codehilite">(timestamp) Recorded a probe coming from ::ffff:127.0.0.1:51082
+containing the following: (empty line)
+
+(timestamp) ::: Responded misleadingly: let's drive those
+hackers nuts! :::
+</code></pre><p>These lines get logged inside a .log file within the current directory. And in the nmap terminal:</p>
+<pre><code class="codehilite">Starting Nmap 5.35DC1 ( http://nmap.org ) at (timestamp)
+Nmap scan report for localhost (127.0.0.1)
+Host is up (0.00017s latency).
+PORT     STATE SERVICE VERSION
+8765/tcp open  ftp     Mac OS X Server ftpd
+</code></pre><p>The faked service/version is random (you can start an ftp server which looks like lukemftpd, Mac OS X server ftpd or PureFTPd for example), but it is consistent within the same server, so that every scan reports the same service and version.</p><h2>U mad? Evil hackers</h2><p>Probably :)</p><h2>Available services</h2><p>For now there are a bunch of ftp, http, torrent, mysql and samba services, mostly Mac-ish. But you can always...</p><h2>Contribute!</h2><p>If you want to contribute with more services and versions to empower micetrap and be a hacking superhero, you shall follow these steps:</p>
+<ul>
+  <li>Fork the project <a href="http://github.com/txus/micetrap">in the Github repo</a>.</li>
+  <li>Install <a href="http://www.nmap.org">nmap</a> and look for a file called nmap-service-probes in your system.  This file contains regexes used to match responses from scanned services.</li>
+  <li>You only have to devise a string which fits in one of this regexes and then  add it in the corresponding service file (in lib/micetrap/services/ftp.rb for  example if it's an ftp server).</li>
+  <li>Commit, do not mess with rakefile, version, or history.  If you want to have your own version, that is fine but bump version  in a commit by itself I can ignore when I pull.</li>
+  <li>Send me a pull request. Bonus points for topic branches.</li>
+  <li>Profit!</li>
+</ul></div></div></div><script type="text/javascript">var _gaq = _gaq || [];
+            _gaq.push(['_setAccount', 'UA-19362711-1']);
+            _gaq.push(['_trackPageview']);
+
+            (function() {
+            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+            })();</script></body></html>

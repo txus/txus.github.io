@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+
+<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>the programmer language,</title><link rel="stylesheet" href="/3a91ca427050/styles.css" /></head><body><div class="container"><h1><a href="/">the programmer language,</a></h1><div class="body"><div class="post"><span class="date">Oct 31, 2010</span>
+
+<header><a href="/2010/10/stendhal-0-1-2-released">Stendhal 0.1.2 released</a></header><p>A brief post about <a href="http://github.com/txus/stendhal">stendhal</a> latest updates! My little code kata is growing slowly :)</p><p>Admittedly, the way in which I develop this gem is by forcing myself not to write anything I don't need right now. Last version (0.1.0) introduced nested example groups, which forced me to rewrite the way examples were ran. I believe this made me rethink some stuff and come up with better code.</p><p>By 0.1.0, the only way to "assert" something inside an example was to primitively do it like this:</p>
+<pre><code class="codehilite"><span class="n">describe</span> <span class="s2">"something"</span> <span class="k">do</span>
+  <span class="n">it</span> <span class="s2">"does something"</span> <span class="k">do</span>
+    <span class="n">assert</span><span class="p">(</span><span class="mi">3</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p>This little method was implemented in an Assertions module which I no longer use: this new release introduces RSpec-like expectations and matchers. This means you can do this kind of things now:</p>
+<pre><code class="codehilite"><span class="n">describe</span> <span class="s2">"something"</span> <span class="k">do</span>
+  <span class="n">it</span> <span class="s2">"does something"</span> <span class="k">do</span>
+    <span class="p">(</span><span class="mi">3</span><span class="o">+</span><span class="mi">4</span><span class="p">)</span><span class="o">.</span><span class="n">must</span> <span class="n">eq</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+  <span class="k">end</span>
+  <span class="n">it</span> <span class="s2">"does something else"</span> <span class="k">do</span>
+    <span class="s2">"string"</span><span class="o">.</span><span class="n">must_not</span> <span class="n">be_frozen</span>
+  <span class="k">end</span>
+  <span class="n">it</span> <span class="s2">"does something else"</span> <span class="k">do</span>
+    <span class="s2">"string"</span><span class="o">.</span><span class="n">must</span> <span class="n">be_a</span><span class="p">(</span><span class="nb">String</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p>For now there are a limited number of matchers, of course.</p><h3>Where is this going then? What will 1.0 have?</h3><p>My idea is to bring <strong>dogfooding</strong> to stendhal by 1.0: all stendhal code should be tested with stendhal itself, rather than with RSpec.</p><p>This means that hopefully these features have to available by then:</p>
+<ul>
+  <li>Test doubles</li>
+  <li>Mocks</li>
+  <li>Some more matchers</li>
+  <li>A decent reporter with multiple formatters</li>
+</ul><p>And it would be nice to have these too:</p>
+<ul>
+  <li>Support for 3rd party mocking libraries (mocha, rr, flexmock, rspec-mocks)</li>
+  <li>Support for using stendhal with rspec-expectations</li>
+</ul><p>Wouldn't that be great? Check the <a href="http://github.com/txus/stendhal">Github source</a> and report issues if you find them! This will speed up the development process a lot :)</p></div></div></div><script type="text/javascript">var _gaq = _gaq || [];
+            _gaq.push(['_setAccount', 'UA-19362711-1']);
+            _gaq.push(['_trackPageview']);
+
+            (function() {
+            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+            })();</script></body></html>

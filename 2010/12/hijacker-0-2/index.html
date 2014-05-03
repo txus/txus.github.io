@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+
+<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>the programmer language,</title><link rel="stylesheet" href="/3a91ca427050/styles.css" /></head><body><div class="container"><h1><a href="/">the programmer language,</a></h1><div class="body"><div class="post"><span class="date">Dec 05, 2010</span>
+
+<header><a href="/2010/12/hijacker-0-2">Hijacker 0.2</a></header><p>After some busy weeks I finally found some time to do a major rewrite of Hijacker, fixing some nasty bugs with 1.8.7, cleaning and refactoring the code and making it more robust in a number of ways.</p><p>The main enhancement is that now you can use your own handlers from your project and home directories! It's easy peasy. You just write a ruby file defining your handler, put in one of these paths:</p>
+<pre><code class="codehilite">./.hijacker/path/to/my/file.rb
+~/.hijacker/path/to/my/file.rb
+</code></pre><p>...and it will be automatically loaded by hijacker, allowing you to start the server with your handler like this:</p>
+<pre><code class="codehilite">$ hijacker my_handler --my-option --bla-bla
+</code></pre><p>If you think your handler might be useful to others, please send me a pull request in <a href="http://github.com/txus/hijacker">the Github repo</a>!</p><h2>Other enhancements</h2><p>There are some minor enhancements as well. For example, now blocks passed to hijacked objects are reported as arguments. So:</p>
+<pre><code class="codehilite"><span class="no">Hijacker</span><span class="o">.</span><span class="n">spy</span><span class="p">(</span><span class="n">my_object</span><span class="p">)</span>
+
+<span class="n">my_object</span><span class="o">.</span><span class="n">my_method</span><span class="p">(</span><span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">)</span> <span class="k">do</span>
+  <span class="c1"># something</span>
+<span class="k">end</span>
+</code></pre><p>Will be reported as calling :my_method with arg1, arg2 and a Proc.</p><p>If the method raised something, it will be reported as well.</p><h2>Contribute!</h2><p>Now being the code cleaner and more organized, feel free to contribute if you find something missing (or if you know really well Rubinius and can easily figure out the metaprogramming issues preventing hijacker from working with it!)</p><p>Or maybe just file an issue :)</p></div></div></div><script type="text/javascript">var _gaq = _gaq || [];
+            _gaq.push(['_setAccount', 'UA-19362711-1']);
+            _gaq.push(['_trackPageview']);
+
+            (function() {
+            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+            })();</script></body></html>

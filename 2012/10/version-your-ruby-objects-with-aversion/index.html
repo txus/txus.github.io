@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+
+<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>the programmer language,</title><link rel="stylesheet" href="/3a91ca427050/styles.css" /></head><body><div class="container"><h1><a href="/">the programmer language,</a></h1><div class="body"><div class="post"><span class="date">Oct 19, 2012</span>
+
+<header><a href="/2012/10/version-your-ruby-objects-with-aversion">Version your Ruby objects with Aversion</a></header><p>During the past few months I've been often daydreaming about functional programming, persistent data structures, and so on. It's something that probably came from learning a bit of Clojure and getting familiar with traditional concepts of the functional paradigm.</p><p>One cool thing that I took from that is the concept of immutability. In programs, mutable state is a rich source of all kinds of problems. For one, your ability to reason about your program becomes impaired -- you cannot trust values anymore. Variables are containers of ever-changing chaos, and especially bad programmers seem to be always in to find new ways of enhancing the insanity of any program through nonsensical mutation.</p><p>Now I've developed a bit of this sixth sense, or aversion towards mutation. When I see mutation in code, my danger sense goes nuts. I might just accept it, but I recognize it and question it.</p><p>What does all of this have to do with versioning objects? Well not much, apart from the fact that versioning objects is a cool thing you can do when you're objects are immutable. Of course after all these random thoughts I needed to code something up to see it in action, and there you go!!</p><h2>Versioning with Aversion</h2><p>When you include <a href="https://github.com/txus/aversion">Aversion</a> in your Ruby objects, every state mutation is explicit and, instead of actually mutate the object, it returns a new instance with the transformation, keeping a history of all the states it went through.</p><p>Let's see how it works. Say we have a Person class:</p>
+<pre><code class="codehilite"><span class="k">class</span> <span class="nc">Person</span>
+  <span class="kp">include</span> <span class="no">Aversion</span>
+  <span class="kp">attr_reader</span> <span class="ss">:hunger</span>
+
+  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">hunger</span><span class="p">)</span>
+    <span class="vi">@hunger</span> <span class="o">=</span> <span class="n">hunger</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">eat</span>
+    <span class="n">transform</span> <span class="k">do</span>
+      <span class="vi">@hunger</span> <span class="o">-=</span> <span class="mi">5</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre><p>See the <code>transform</code> part? Here's an explicit change of state. Instead of subtracting 5 from our current hunger, what it will do is return a new <strong>version</strong> of the object where this transformation happened. The cool thing is, you can go back too!</p><p>So, our Person instances will be immutable. Every mutation must be explicitly wrapped within a <code>transform</code> block, and will return the new instance:</p>
+<pre><code class="codehilite"><span class="n">john</span>       <span class="o">=</span> <span class="no">Person</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+
+<span class="n">new_john</span>   <span class="o">=</span> <span class="n">john</span><span class="o">.</span><span class="n">eat</span>
+<span class="n">new_john</span><span class="o">.</span><span class="n">hunger</span> <span class="c1"># =&gt; 95</span>
+
+<span class="n">newer_john</span> <span class="o">=</span> <span class="n">new_john</span><span class="o">.</span><span class="n">eat</span>
+<span class="n">newer_john</span><span class="o">.</span><span class="n">hunger</span> <span class="c1"># =&gt; 90</span>
+</code></pre><p>Of course, you can roll back to a previous state:</p>
+<pre><code class="codehilite"><span class="n">new_john_again</span> <span class="o">=</span> <span class="n">newer_john</span><span class="o">.</span><span class="n">rollback</span>
+<span class="n">new_john_again</span><span class="o">.</span><span class="n">hunger</span> <span class="c1"># =&gt; 95</span>
+</code></pre><p>And finally one of the nicest things is that you can also compute the difference between two versions, expressed as an array of transformations, and apply it onto an arbitrary object:</p>
+<pre><code class="codehilite"><span class="n">difference</span> <span class="o">=</span> <span class="n">newer_john</span> <span class="o">-</span> <span class="n">john</span>
+<span class="n">newer_john_again</span> <span class="o">=</span> <span class="n">john</span><span class="o">.</span><span class="n">replay</span><span class="p">(</span><span class="n">difference</span><span class="p">)</span>
+<span class="n">newer_john_again</span><span class="o">.</span><span class="n">hunger</span> <span class="c1"># =&gt; 90</span>
+</code></pre><p>So, if you're curious, just <a href="https://github.com/txus/aversion">grab the github repo</a> and play with it! You surely can find interesting use cases of immutability and versioning in your own programs.</p><p>And also, if you're really curious about persistent data structures but you don't want to learn Clojure just yet, try out <a href="https://github.com/harukizaemon/hamster">Hamster</a>, a Ruby library that implements a ton of persistent data structures.</p></div></div></div><script type="text/javascript">var _gaq = _gaq || [];
+            _gaq.push(['_setAccount', 'UA-19362711-1']);
+            _gaq.push(['_trackPageview']);
+
+            (function() {
+            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+            })();</script></body></html>
