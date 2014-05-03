@@ -28,6 +28,7 @@ body {
   margin: 0px auto;
   font-size: 18px;
   width: 600px;
+  max-width: 90%;
 }
 
 .post {
