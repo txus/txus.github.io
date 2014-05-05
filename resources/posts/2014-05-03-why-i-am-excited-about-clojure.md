@@ -43,9 +43,9 @@ doesn't feel like learning.
 
 In Clojure on the other hand, I end up finding out **I was doing it wrong**
 (for example, dealing with lazy sequences as if they were normal sequences),
-and that the language provides either a way to do it right which is also
-cleaner. It feels as if I had asked Rich Hickey (the creator of Clojure) and
-he had told me:
+and that the language provides a way to do it right which is also cleaner. It
+feels as if I had asked Rich Hickey (the creator of Clojure) and he had told
+me:
 
 _"Hahaha of course! Think again -- everything works like it's supposed to.
 You're using the wrong function or the wrong data structure."_
