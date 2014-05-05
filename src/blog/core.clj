@@ -27,7 +27,14 @@
     [:body
      [:div.container
        [:h1 [:a {:href "/"} "the programmer language,"]]
-       [:div.body page]]
+       [:div.body page]
+       [:section {:id "footer"}
+        [:hr]
+        [:small
+          [:span "If you liked this post, go read some of my "]
+          [:a {:href "/"} "other posts"]
+          [:span "."]]
+        [:hr]]]
      [:script {:type "text/javascript"}
       (str "var _gaq = _gaq || [];
             _gaq.push(['_setAccount', '" analytics-id "']);
