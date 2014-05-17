@@ -1,7 +1,7 @@
 <strong>txus</strong> <i>/t&int;us/</i><br/><small>general enthusiast</small>
 
 1. Programmer based in Berlin.
-2. Obsessed with programming language design, compilers, virtual machines. Some things I like to work on:
+2. Obsessed with programming language design, compilers, virtual machines. Some things I like working on:
      * [Lambra][lambra]: Distributed programming language inspired by Erlang and Clojure.
      * [TerrorVM][terrorvm]: Language-agnostic VM for dynamic programming languages.
 3. Co-founder of [Codegram][codegram] and conference organizer ([Barcelona Ruby
