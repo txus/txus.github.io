@@ -1,5 +1,9 @@
 # blog
 
+To develop & live-preview:
+
+    lein ring server
+
 To build:
 
     make
