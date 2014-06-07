@@ -30,10 +30,12 @@
        [:div.body page]
        [:section {:id "footer"}
         [:hr]
-        [:small
-          [:span "If you liked this post, go read some of my "]
-          [:a {:href "/"} "other posts"]
-          [:span "."]]
+        [:img {:src "https://pbs.twimg.com/profile_images/1180123534/hey_400x400.jpeg" :width 60 :height 60}]
+        [:span "I'm "]
+        [:a {:href "https://twitter.com/txustice"} "@txustice"]
+        [:span " on Twitter. Follow me and say hello! Or go read some of my "]
+        [:a {:href "/"} "other posts"]
+        [:span "."]
         [:hr]]]
      [:script {:type "text/javascript"}
       (str "var _gaq = _gaq || [];

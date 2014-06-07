@@ -72,3 +72,15 @@ h1 a:visited {
   font-family: 'PT Sans', 'Helvetica Neue', Arial, sans-serif;
   font-size: 17px
 }
+
+#footer {
+  line-height: 30px
+}
+#footer hr{
+  margin: 20px 0px
+}
+
+#footer img{
+  float: left;
+  padding-right: 20px
+}
