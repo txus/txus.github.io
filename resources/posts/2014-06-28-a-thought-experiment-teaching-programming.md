@@ -12,9 +12,9 @@ generations of teachers-learners: we teach very much in the way we were
 taught, with some improvements though, maybe some new metaphors, adding some
 new insights. But we stick to what we know worked when we were being taught.
 
-An exammple: I know nothing about parenting myself, but if I were to raise
-future children, I would definitely start from how my parents raised me.
-A pervasive reading culture, music and books being omnipresent, musical
+An example: I know nothing about parenting myself, but if I were to raise
+future children, I would definitely start from how my parents raised me.  A
+pervasive reading culture, music and books being omnipresent, musical
 instruments, cats, dogs and other pets.
 
 None of these elements necessarily contribute to good parenting, but that's my
