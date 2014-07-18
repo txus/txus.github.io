@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>the programmer language,</title><link rel="stylesheet" href="/5735e0ec95a5/styles.css" /></head><body><div class="container"><h1><a href="/">the programmer language,</a></h1><div class="body"><div class="post"><span class="date">Oct 13, 2012</span>
+<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>the programmer language,</title><link type="application/atom+xml" title="ATOM" rel="alternate" href="/atom.xml" /><link rel="stylesheet" href="/5735e0ec95a5/styles.css" /></head><body><div class="container"><h1><a href="/">the programmer language,</a></h1><div class="body"><div class="post"><span class="date">Oct 13, 2012</span>
 
 <header><a href="/2012/10/expressing-ruby-code-in-natural-language">Expressing Ruby code in natural language</a></header><p>In my morning shower I'm normally still half asleep so my process of thought is still pretty bizarre and dreamy. This explains why is then when I usually come up with the weirdest ideas.</p><p>The other day I thought about the layer of translation that we apply when we <strong>read</strong> code. Even with a language with a nice syntax like Ruby, we still translate when reading.</p><p>Think of the typical situation: you're stuck with a bug. You've already spent 30 minutes staring at the code, uncapable of detecting what's wrong. In your frustration, you ask a colleague to come and figure this out together. The first thing you do is explain the code to your partner out loud: and then you immediately realize where the problem is. This is called <a href="http://en.wikipedia.org/wiki/Rubber_duck_debugging">rubber duck debugging</a>, because you could have solved the problem by explaining it to a rubber duck on your desk.</p><p>Knowing this (because it happened to me seven thousand million times), and thinking simultaneously about the <a href="http://islalanguage.org/">Isla programming language</a> (an educational programming language for young children), I thought about the cognitive difficulty of learning to program. Harder and more complex syntax equals more cognitive load, and that slows down people when learning to program. That's why I think it's by far easier to start learning to program with a LISP, or even with Ruby, rather than with Erlang.</p><p>So I coded this up:</p><h2>Explain, a Ruby source-to-natural-language compiler</h2><p><a href="https://github.com/txus/explain">Explain</a> is a special kind of a source-to-source compiler: it translates Ruby code to English. This might be used by beginners to gain more insight into what a given piece of code is doing. Let's see an example. Given this Ruby code:</p>
 <pre><code class="codehilite"><span class="k">class</span> <span class="nc">Person</span>
@@ -21,7 +21,7 @@ Let's describe the general attributes and behavior of any Person.
 A Person can **walk**, given a specific distance. This is described as
 follows: its distance will be its distance plus what we previously defined as
 `distance`. Finally we return its hunger will be its hunger plus the number
-2.. 
+2..
 
 A Person can **eat**, given a specific food. This is described as follows:
 Finally we return its hunger will be its hunger minus the result of calling
