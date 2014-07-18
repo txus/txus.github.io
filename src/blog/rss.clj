@@ -8,7 +8,7 @@
    [:title (:title post)]
    [:updated (:date post)]
    [:author [:name (:author post)]]
-   [:link {:href (str "http://blog.txus.io" (:path post))}]
+   [:link {:href (str "http://blog.txus.io" (:url post))}]
    [:id (str "urn:blog.txus.io:feed:post:" (:title post))]
    [:content {:type "html"} (md/to-html (:body post) p/pegdown-options)]])
 
