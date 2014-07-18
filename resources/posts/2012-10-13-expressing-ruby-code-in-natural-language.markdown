@@ -1,5 +1,6 @@
 ---
 layout: post
+author: Txus
 title: "Expressing Ruby code in natural language"
 date: 2012-10-13 19:35
 comments: true
@@ -61,7 +62,7 @@ When we run explain on it we get this:
     A Person can **walk**, given a specific distance. This is described as
     follows: its distance will be its distance plus what we previously defined as
     `distance`. Finally we return its hunger will be its hunger plus the number
-    2.. 
+    2..
 
     A Person can **eat**, given a specific food. This is described as follows:
     Finally we return its hunger will be its hunger minus the result of calling

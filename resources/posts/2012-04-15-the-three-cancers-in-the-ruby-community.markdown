@@ -1,5 +1,6 @@
 ---
 layout: post
+author: Txus
 title: "The three cancers in the Ruby community"
 categories: life ruby
 comments: true

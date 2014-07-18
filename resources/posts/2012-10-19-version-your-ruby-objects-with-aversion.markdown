@@ -1,5 +1,6 @@
 ---
 layout: post
+author: Txus
 title: "Version your Ruby objects with Aversion"
 date: 2012-10-19 18:40
 comments: true

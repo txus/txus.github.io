@@ -1,5 +1,6 @@
 ---
 layout: post
+author: Txus
 title: "Learning with Terror... VM"
 categories: vm
 ---

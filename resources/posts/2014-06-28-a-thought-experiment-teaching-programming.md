@@ -1,5 +1,6 @@
 ---
 title: "A thought experiment: teaching programming"
+author: Txus
 categories: teaching
 ---
 

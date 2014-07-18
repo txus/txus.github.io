@@ -22,7 +22,7 @@
                       (str/replace #"\.markdown" ""))
         [_ metadata body] (str/split blob #"---", 3)]
     (-> (yaml/parse-string metadata)
-        (select-keys [:title])
+        (select-keys [:title :author])
         (assoc :date date)
         (assoc :url (str "/" year "/" month "/" url-title))
         (assoc :body (str/trim body)))))

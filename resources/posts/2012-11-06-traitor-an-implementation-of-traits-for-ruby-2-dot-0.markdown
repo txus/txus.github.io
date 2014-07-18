@@ -1,5 +1,6 @@
 ---
 layout: post
+author: Txus
 title: "Traitor - an implementation of traits for Ruby 2.0"
 date: 2012-11-06 21:46
 comments: true

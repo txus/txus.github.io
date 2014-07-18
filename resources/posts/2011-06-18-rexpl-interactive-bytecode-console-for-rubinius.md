@@ -1,5 +1,6 @@
 ---
 title: Rexpl - an interactive bytecode console for Rubinius
+author: Txus
 layout: post
 categories: [rubinius, ruby]
 ---

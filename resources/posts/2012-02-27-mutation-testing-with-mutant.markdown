@@ -1,5 +1,6 @@
 ---
 title: Mutation testing with Mutant
+author: Txus
 layout: post
 categories: ruby, testing, rubinius
 ---

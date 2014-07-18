@@ -1,5 +1,6 @@
 ---
 title: Micetrap - Catch evil hackers on the fly!
+author: Txus
 layout: post
 category: ruby, hacking
 ---

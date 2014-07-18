@@ -1,5 +1,6 @@
 ---
 title: Stendhal 0.1.2 released
+author: Txus
 layout: post
 categories: [ruby, bdd, stendhal]
 ---

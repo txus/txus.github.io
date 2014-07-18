@@ -1,6 +1,6 @@
 ---
-title: "How Apple failed miserably to get us closer to the Moon: What's wrong
-with Swift?"
+title: "How Apple failed miserably to get us closer to the Moon: What's wrong with Swift?"
+author: Txus
 categories: rants
 ---
 

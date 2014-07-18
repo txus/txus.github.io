@@ -1,5 +1,6 @@
 ---
 title: "Why I am excited about Clojure"
+author: Txus
 categories: clojure
 ---
 

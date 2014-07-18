@@ -1,5 +1,6 @@
 ---
 title: Stay fit with code katas
+author: Txus
 layout: post
 category: ruby, github, bdd
 comments: true

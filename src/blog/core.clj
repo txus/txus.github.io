@@ -7,6 +7,7 @@
             [optimus.strategies :refer [serve-live-assets]]
             [blog.highlight :refer [highlight-code-blocks]]
             [blog.post :as post]
+            [blog.rss :as rss]
             [clojure.java.io :as io]
             [clojure.string :as str]
             [me.raynes.cegdown :as md]
@@ -22,6 +23,7 @@
      [:meta {:name "viewport"
              :content "width=device-width, initial-scale=1.0"}]
      [:title "the programmer language,"]
+     [:link {:rel "alternate" :title "ATOM" :type "application/atom+xml" :href "/atom.xml"}]
      [:link {:rel "stylesheet" :href (link/file-path request "/styles.css")}]]
 
     [:body
@@ -89,7 +91,9 @@
        :partials
        (markdown-pages (stasis/slurp-directory "resources/partials" #".*\.(md|markdown)"))
        :posts
-       (markdown-posts posts)})))
+       (markdown-posts posts)
+       :rss
+       { "/atom.xml" (rss/atom-xml posts) }})))
 
 (defn prepare-pages [pages]
   (zipmap (keys pages)

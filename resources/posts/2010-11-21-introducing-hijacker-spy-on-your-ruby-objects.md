@@ -1,5 +1,6 @@
 ---
 title: Introducing Hijacker - spy on your ruby objects!
+author: Txus
 layout: post
 categories: [ruby, drb]
 ---
