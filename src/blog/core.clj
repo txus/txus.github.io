@@ -24,7 +24,13 @@
              :content "width=device-width, initial-scale=1.0"}]
      [:title "the programmer language,"]
      [:link {:rel "alternate" :title "ATOM" :type "application/atom+xml" :href "/atom.xml"}]
-     [:link {:rel "stylesheet" :href (link/file-path request "/styles.css")}]]
+     [:link {:rel "stylesheet" :href (link/file-path request "/styles.css")}]
+     [:script {:type "text/javascript"}
+      """
+      (function(f,b){if(!b.__SV){var a,e,i,g;window.mixpanel=b;b._i=[];b.init=function(a,e,d){function f(b,h){var a=h.split(\".\");2==a.length&&(b=b[a[0]],h=a[1]);b[h]=function(){b.push([h].concat(Array.prototype.slice.call(arguments,0)))}}var c=b;\"undefined\"!==typeof d?c=b[d]=[]:d=\"mixpanel\";c.people=c.people||[];c.toString=function(b){var a=\"mixpanel\";\"mixpanel\"!==d&&(a+=\".\"+d);b||(a+=\" (stub)\");return a};c.people.toString=function(){return c.toString(1)+\".people (stub)\"};i=\"disable track track_pageview track_links track_forms register register_once alias unregister identify name_tag set_config people.set people.set_once people.increment people.append people.track_charge people.clear_charges people.delete_user\".split(\" \");
+      for(g=0;g<i.length;g++)f(c,i[g]);b._i.push([a,e,d])};b.__SV=1.2;a=f.createElement(\"script\");a.type=\"text/javascript\";a.async=!0;a.src=\"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js\";e=f.getElementsByTagName(\"script\")[0];e.parentNode.insertBefore(a,e)}})(document,window.mixpanel||[]);
+      mixpanel.init(\"af522f005afba4a9815d19dc53e50261\");
+      """]]
 
     [:body
      [:div.container
@@ -32,23 +38,13 @@
        [:div.body page]
        [:section {:id "footer"}
         [:hr]
-        [:img {:src "https://pbs.twimg.com/profile_images/1180123534/hey_400x400.jpeg" :width 60 :height 60}]
+        [:img {:src "https://pbs.twimg.com/profile_images/541551337779908609/j6MXtyhj.jpeg" :width 60 :height 60}]
         [:span "I'm "]
         [:a {:href "https://twitter.com/txustice"} "@txustice"]
         [:span " on Twitter. Follow me and say hello! Or go read some of my "]
         [:a {:href "/"} "other posts"]
         [:span "."]
-        [:hr]]]
-     [:script {:type "text/javascript"}
-      (str "var _gaq = _gaq || [];
-            _gaq.push(['_setAccount', '" analytics-id "']);
-            _gaq.push(['_trackPageview']);
-
-            (function() {
-            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-            })();")]]))
+        [:hr]]]]))
 
 (defn markdown-posts [posts]
   (reduce (fn [acc post]
