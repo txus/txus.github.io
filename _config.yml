@@ -18,20 +18,21 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-title: Learning machines
+title: Teaching machines to learn
 email: hello@txus.io
+author: Txus Bach
 description: >- # this means to ignore newlines until "baseurl:"
-  a blog about all things machine learning, reinforcement learning, LLMs,
-  what have you
+  my [mostly unorganized] thoughts about all things machine learning, reinforcement learning, LLMs, and all that cool stuff
 baseurl: ""
 url: https://txus.github.io
 github_username:  txus
+linkedin_username:  txus
 
 # Build settings
 theme: minima
 plugins:
   - jekyll-feed
-markdown: GFM
+markdown: kramdown
 
 # Exclude from processing.
 # The following items will not be processed, by default.
